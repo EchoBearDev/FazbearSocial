@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fazbear Social Hub v13.4 (Fix de Caché)</title>
-    <script src="https://cdn.tailwindcss.com?v=134"></script> 
+    <title>Fazbear Social Hub v13.5 (Fix Final y Búsqueda de Usuarios)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ESTILOS DE LA INTERFAZ ORIGINAL */
         body {font-family: 'VT323', monospace;background:#111;color:#d1d5db;height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:0;}
         .pirate-cove {
             background-color: #5b21b6; 
@@ -16,1577 +17,459 @@
             background-position: 0 0, 10px 10px;
             text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
         }
-        #splash {position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#9333ea;transition:opacity 1s;opacity:1;}
-        .splash-title {font-size:3rem;color:#fff;text-shadow:0 0 15px #9333ea;animation:pulse 1.5s infinite alternate;}
-        @keyframes pulse {from{transform:scale(1)}to{transform:scale(1.05)}}
-        .loading-bar {width:80%;max-width:400px;height:10px;background:#333;border:1px solid #9333ea;overflow:hidden;}
-        .progress {height:100%;width:0%;background:#fff;transition:width 0.8s;}
-        .monitor {background:#1a1a1a;border:5px solid #5a5a5a;box-shadow:0 0 30px rgba(147, 51, 234, 0.4);width:100%;max-width:800px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-        .tab-btn {background:#2a2a2a;color:#d1d5db;padding:1rem;text-align:left;}
-        .tab-btn.active {background:#111;color:#fff;border-left:5px solid #9333ea;}
-        .content {flex-grow:1;overflow-y:auto;padding:1rem;padding-bottom:5rem;}
-        .post {background:#222;padding:1rem;margin-bottom:1rem;border-left:5px solid #9333ea;border-radius:0 8px 8px 0;}
-        .pizza-btn {background:#9333ea;color:white;padding:0.5rem 1rem;border-radius:50px;font-size:0.8rem;transition:background 0.1s;}
-        .pizza-btn.active-like {background:white;color:#9333ea;font-weight:bold;}
-        .pizza-btn:disabled {opacity:0.5;cursor:not-allowed;}
-        .comment-input {width:100%;padding:0.5rem;background:#333;color:#fff;border:1px solid #555;margin-top:0.5rem;}
-        .fab {position:fixed;bottom:1rem;right:1rem;width:3.5rem;height:3.5rem;background:#9333ea;color:white;border-radius:50%;font-size:2rem;display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px #9333ea;z-index:10;padding:0;overflow:hidden;}
-        .fab img {width:100%;height:100%;object-fit:cover;}
-        .hidden {display:none !important;}
-        .send-btn {background:#9333ea;color:white;padding:0.5rem 1rem;border-radius:50px;margin-left:0.5rem;}
-        .chat-input-area {position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;border-top:3px solid #9333ea;padding:0.75rem;display:flex;align-items:center;z-index:20;}
-        .delete-btn {color:red;font-size:0.7rem;margin-left:1rem;cursor:pointer;}
-        
-        .notification-icon {position:relative;}
-        .notification-dot {position:absolute;top:-5px;right:-5px;width:10px;height:10px;background:red;border-radius:50%;display:none;}
-        .username-link {cursor:pointer;text-decoration:underline;text-decoration-color: #5b21b6;}
-        .camera-video {width: 100%;max-height: 400px;object-fit: contain;background-color: black;}
-        #auth-screen {position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0, 0, 0, 0.95);z-index: 1000;display: flex;flex-direction: column;justify-content: center;align-items: center;color: #d1d5db;}
-        .auth-container {background: #222;padding: 2rem;border: 5px solid #9333ea;box-shadow: 0 0 20px #9333ea;max-width: 400px;width: 90%;text-align: center;}
-        .pin-input {text-align: center;font-size: 2rem;letter-spacing: 1rem;}
-
-        /* === ESTILOS PARA AVATAR/GEAR === */
-        .avatar-container {
-            position: relative;
-        }
-        .avatar-base {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #9333ea;
-        }
-        .avatar-gear {
-            position: absolute;
-            top: 0; 
-            left: 0; 
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            pointer-events: none; 
-        }
-        
-        /* === ESTILOS PARA MAPA V13.1 === */
-        .map-container {
-            position: relative;
-            width: 100%;
-            padding-bottom: 75%; /* Aspect ratio 4:3 */
-            background: #000;
-        }
-        .map-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border: 3px solid #22c55e; /* Green monitor border */
-        }
-        .map-report {
-            background: #1e293b;
-            padding: 1rem;
-            border-left: 5px solid #22c55e;
-            margin-top: 1rem;
-        }
+        #splash {position:fixed;top:0;left:0;width:100%;height:100%;background:#111;z-index:1000;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#facc15;}
+        .chat-message.own {background-color: #374151;margin-left:auto;}
+        .chat-message.other {background-color: #1f2937;margin-right:auto;}
+        .gear-card.equipped {border: 4px solid #facc15; box-shadow: 0 0 10px #facc15;}
+        .tooltip {position: absolute; background: #000; color: #fff; padding: 5px; border-radius: 5px; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.3s;}
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-gray-300">
+
     <div id="splash">
-        <h1 class="splash-title">Fazbear Social Hub</h1>
-        <p>CONECTANDO A LA RED...</p>
-        <div class="loading-bar"><div id="progress" class="progress"></div></div>
+        <div class="text-4xl">F.A.Z.B.E.A.R.</div>
+        <div class="text-2xl mt-2">S O C I A L &nbsp; H U B</div>
+        <div class="text-lg mt-8">Cargando datos de seguridad...</div>
+        <div class="text-sm mt-1">v13.5 (Fix Final y Búsqueda de Usuarios)</div>
     </div>
 
-    <div id="auth-screen" class="hidden">
-        <div class="auth-container">
-            <h2 id="auth-title" class="text-3xl text-purple-400 mb-4">INICIAR TURNO DE NOCHE</h2>
-            <div id="login-section">
-                <p class="text-white mb-2">Ingresa tu Número de Guardia (PIN de 4 dígitos)</p>
-                <input type="number" id="login-pin" placeholder="####" class="comment-input pin-input mb-4" maxlength="4" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                <button onclick="loginWithPin()" class="pizza-btn w-full">ACCEDER AL MONITOR</button>
-                <p class="mt-4 text-sm text-gray-400">¿Eres nuevo? <span onclick="showCreateProfile()" class="text-purple-300 cursor-pointer">Crea un Número de Guardia</span></p>
-            </div>
-
-            <div id="create-section" class="hidden">
-                 <p id="maintenance-warning" class="text-red-500 mb-2 hidden font-bold">⚠️ EL INGRESO DE NUEVOS GUARDias ESTÁ CERRADO</p>
-                 <p class="text-white mb-2">1. Elige tu Nombre Único</p>
-                 <input type="text" id="new-name" placeholder="Nombre Único (@Usuario)" class="comment-input mb-2" maxlength="20">
-                 <p class="text-white mb-2">2. Crea tu Número de Guardia (PIN de 4 dígitos)</p>
-                 <input type="number" id="new-pin" placeholder="####" class="comment-input pin-input mb-4" maxlength="4" oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);">
-                 <button onclick="createNewProfile()" class="pizza-btn w-full">CREAR PERFIL</button>
-                 <p class="mt-4 text-sm text-gray-400">¿Ya tienes uno? <span onclick="showLogin()" class="text-purple-300 cursor-pointer">Volver a Acceder</span></p>
-            </div>
-        </div>
-    </div>
-
-    <div id="app-monitor" class="monitor hidden">
-        <header class="p-3 border-b border-gray-600">
-            <div class="flex justify-between items-center mb-1">
-                <div class="flex items-center">
-                    <button onclick="toggleSidebar()" class="text-2xl mr-3">Menú</button>
-                    <span id="header-title" class="text-xl text-white">Fazbear Social Hub</span>
-                </div>
-                <span class="text-yellow-400">💰 <span id="faz-tokens-display">0</span> Tokens</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <p class="text-xs text-yellow-400">Turno de Noche: <span id="session-time">00:00:00</span></p>
-                <span class="text-green-400">V13.4 | <span id="clock"></span></span>
-            </div>
-        </header>
-
-        <div id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-black border-r-4 border-purple-500 transform -translate-x-full transition-transform z-50">
-            <div class="p-4">
-                <h3 class="text-xl text-purple-500 mb-4">MENÚ</h3>
-                <button id="tab-feed" class="tab-btn active w-full notification-icon" onclick="switchTab('feed')">
-                    FEED TEORÍAS <span id="feed-notification-dot" class="notification-dot"></span>
-                </button>
-                <button id="tab-map" class="tab-btn w-full" onclick="switchTab('map')">MAPA DE LA PIZZERÍA</button>
-                <button id="tab-cameras" class="tab-btn w-full" onclick="switchTab('cameras')">CÁMARAS DE SEGURIDAD</button>
-                <button id="tab-chat" class="tab-btn w-full" onclick="switchTab('chat')">CHAT RÁPIDO</button>
-                <button id="tab-private-chat" class="tab-btn w-full" onclick="switchTab('private-chat')">CHAT PRIVADO</button>
-                <button id="tab-shop" class="tab-btn w-full" onclick="switchTab('shop')">TIENDA DE TOKENS</button>
-                <button id="tab-profile" class="tab-btn w-full" onclick="switchTab('profile')">MI PERFIL</button>
-                <button id="tab-info" class="tab-btn w-full" onclick="switchTab('info')">INFO SCOTT</button>
-                <button onclick="logout()" class="tab-btn w-full mt-4 text-red-400">CERRAR TURNO</button>
-            </div>
-        </div>
-
-        <div id="overlay" class="fixed inset-0 bg-black bg-opacity-70 hidden z-40" onclick="toggleSidebar()"></div>
-
-
-        <div id="feed" class="content">
-            <div class="mb-4">
-                 <input type="text" id="search-input" placeholder="Buscar teorías, usuarios o temas..." class="comment-input" onkeyup="handleSearch()">
-            </div>
-            <div class="flex justify-center mb-4">
-                 <button onclick="loadFeed(true)" class="pizza-btn">🔄 ACTUALIZAR FEED</button>
-            </div>
-            <p class="text-center text-purple-500">¡Sé el primero!</p>
-        </div>
+    <div id="app" class="hidden w-full h-full max-w-7xl max-h-[900px] flex border-4 border-yellow-500 rounded-lg shadow-2xl bg-gray-800 p-2">
         
-        <div id="cameras" class="content hidden">
-            <h2 class="text-xl text-purple-500 mb-4">CÁMARAS DE SEGURIDAD (Vídeos)</h2>
-            <div class="flex justify-center mb-4">
-                 <button onclick="loadCameras(true)" class="pizza-btn">🔄 ACTUALIZAR CÁMARAS</button>
+        <div class="w-1/4 bg-gray-900 p-4 rounded-lg mr-2 flex flex-col items-center">
+            <div id="profile-picture-container" class="relative w-32 h-32 bg-gray-700 rounded-full border-4 border-yellow-500 flex items-center justify-center mb-4">
+                <div id="gear-slot" class="absolute w-20 h-20 bg-transparent rounded-full z-10"></div>
+                <img id="profile-picture" class="w-full h-full rounded-full object-cover z-0" src="https://i.imgur.com/8QZ9d7m.png" alt="Profile Picture">
             </div>
-            <div id="cameras-list">
-                 <p class="text-center text-gray-500">No hay grabaciones activas.</p>
-            </div>
-        </div>
-        
-        <div id="map" class="content hidden">
-             <h2 class="text-xl text-green-400 mb-4 border-b border-green-500 pb-2">MAPA TÁCTICO DE SEGURIDAD</h2>
-             <div class="map-container">
-                 <img src="https://placehold.co/800x600/000/22c55e?text=FAZBEAR+MAPA+SALA+DE+SEGURIDAD" class="map-image" alt="Mapa de la Pizzería">
-             </div>
-             <div class="map-report">
-                 <h3 class="text-lg text-green-400 font-bold mb-2">REPORTE DE POSICIÓN</h3>
-                 <div id="animatronic-status">
-                     </div>
-             </div>
-             <div class="mt-4 flex justify-center">
-                <button onclick="loadMap()" class="pizza-btn bg-green-600 hover:bg-green-700">ACTUALIZAR REPORTE</button>
-             </div>
-        </div>
-
-        <div id="chat" class="content hidden flex flex-col h-full relative">
-            <div id="chat-messages" class="flex-grow overflow-y-auto p-2 pb-20"></div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Escribe un mensaje..." class="comment-input" maxlength="100">
-                <button onclick="sendChat()" class="send-btn">ENVIAR</button>
-            </div>
-        </div>
-
-        <div id="private-chat" class="content hidden flex flex-col items-center justify-center h-full pirate-cove">
-            <h2 class="text-3xl text-white mb-4">ERROR 404: CÓDIGO NO ENCONTRADO</h2>
-            <p class="text-xl text-yellow-300 mb-2">CHAT PRIVADO: FUERA DE SERVICIO</p>
-            <p class="text-lg text-white text-center">Parece que Foxy está reparando el código. Vuelve más tarde.</p>
-        </div>
-        
-        <div id="shop" class="content hidden">
-            <h2 class="text-xl text-yellow-300 mb-4">TIENDA DE GEAR Y PERSONALIZACIÓN</h2>
-            <p class="text-white mb-4">Tokens Actuales: 💰 <span id="shop-tokens-display" class="font-bold text-lg">0</span></p>
-            <div id="shop-items" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                </div>
-            <p class="text-xs text-gray-500 mt-4">Los ítems comprados se sobreponen a tu foto de perfil.</p>
-        </div>
-
-        <div id="user-profile-view" class="content hidden p-4">
-            <button onclick="switchTab('feed')" class="pizza-btn mb-4">← VOLVER AL FEED</button>
-            <div class="bg-gray-800 p-4 rounded mb-4">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                        <div id="view-avatar-container" class="w-16 h-16 mr-4">
-                            </div>
-                        <div>
-                            <h2 id="view-name" class="text-3xl text-purple-400 font-bold">@Usuario</h2>
-                            <p id="view-id" class="text-xs text-gray-400"></p>
-                        </div>
-                    </div>
-                     <div class="flex flex-col space-y-2">
-                        <button id="follow-btn" class="pizza-btn" onclick="toggleFollow()">SEGUIR</button>
-                        <button id="block-btn" class="pizza-btn bg-red-600 hover:bg-red-700" onclick="toggleBlock()">BLOQUEAR</button>
-                     </div>
-                </div>
-                <p class="text-yellow-400 mb-2">🤖 Animatrónicos: <span id="view-followers">0</span></p>
-                <p id="view-bio" class="text-gray-300 italic">Cargando biografía...</p>
-            </div>
-            <h3 class="text-xl text-white mb-2 border-b border-gray-700 pb-1">PUBLICACIONES DE <span id="view-name-posts"></span>:</h3>
-            <div id="user-posts-list">
-                <p class="text-center text-gray-500">Cargando publicaciones...</p>
-            </div>
-        </div>
-        
-        <div id="profile" class="content hidden p-4">
-            <h2 class="text-xl text-purple-500 mb-4">MI PERFIL</h2>
-            <p class="text-sm text-gray-400 mb-2">Tu ID único de Dispositivo: <span id="display-user-id" class="text-white font-bold"></span></p>
-            <p class="text-sm text-gray-400 mb-4">Tu PIN de Guardia: <span id="display-user-pin" class="text-white font-bold">####</span></p>
-
-            <div class="bg-gray-700 p-4 rounded mb-4">
-                <h3 class="text-yellow-300 text-lg mb-2">ESTADÍSTICAS DEL GUARDIA</h3>
-                <p>💰 Faz-Tokens Acumulados: <span id="profile-tokens" class="font-bold text-green-400">0</span></p>
-                <p>🍕 Pizza Slices Recibidos: <span id="profile-total-likes" class="font-bold">0</span></p>
-                <p>📝 Total de Teorías: <span id="profile-total-posts" class="font-bold">0</span></p>
-            </div>
+            <div id="profile-name" class="text-2xl text-yellow-500 mb-1">Cargando...</div>
+            <div id="user-role" class="text-sm text-red-500 mb-4">Guardia Nocturno</div>
             
-            <div class="flex items-center mb-2">
-                <div id="profile-avatar-display" class="w-10 h-10 mr-4">
-                    </div>
-                <div>
-                     <input type="text" id="profile-name" placeholder="Nombre Único (ej: @FreddyFazbear)" class="comment-input mb-2">
-                     <textarea id="profile-bio" placeholder="Descripción personal (máx 100 caracteres)" class="comment-input h-20 resize-none mb-2" maxlength="100"></textarea>
-                     <label class="block text-sm mb-1 text-purple-400">Foto de Perfil (Galería)</label>
-                     <input type="file" id="profile-avatar-file" accept="image/*" class="comment-input mb-2" data-max-size="5242880">
-                </div>
-            </div>
-            <p class="text-xs text-gray-500 mb-2">Si deseas cambiar tu GEAR, visita la TIENDA.</p>
-            
-            <button id="save-profile-btn" onclick="saveProfile()" class="pizza-btn w-full mb-4">GUARDAR PERFIL</button>
-             
-            <div id="admin-options" class="hidden bg-gray-700 p-4 rounded mt-4">
-                 <h3 class="text-yellow-300 text-lg mb-2">OPCIONES DE ADMIN</h3>
-                 <div class="flex items-center">
-                     <label for="maintenance-mode" class="mr-3">CERRAR NUEVO INGRESO (MANTENIMIENTO)</label>
-                     <input type="checkbox" id="maintenance-mode" onclick="toggleMaintenanceMode()">
-                 </div>
-                 <p class="text-xs text-gray-300 mt-2">Activar esto impide que usuarios sin perfil creado se registren.</p>
+            <div class="w-full bg-gray-700 p-2 rounded-lg mb-4 text-center">
+                <div class="text-lg text-green-400">Tokens de Pizzería: <span id="user-tokens">0</span></div>
             </div>
 
+            <div class="w-full space-y-2">
+                <button onclick="showSection('feed')" class="w-full py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition duration-150 ease-in-out text-lg text-black font-bold">Feed (Teorías)</button>
+                <button onclick="showSection('profile')" class="w-full py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition duration-150 ease-in-out text-lg text-black font-bold">Mi Perfil</button>
+                <button onclick="showSection('chat')" class="w-full py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition duration-150 ease-in-out text-lg text-black font-bold">Chat Rápido</button>
+                <button onclick="showSection('shop')" class="w-full py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition duration-150 ease-in-out text-lg text-black font-bold">Tienda</button>
+                <button onclick="showSection('cameras')" class="w-full py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition duration-150 ease-in-out text-lg text-black font-bold">Cámaras</button>
+            </div>
+
+             <div class="mt-auto pt-4 w-full">
+                <button onclick="signOutUser()" class="w-full py-2 bg-red-600 hover:bg-red-500 rounded-lg transition duration-150 ease-in-out text-sm text-white font-bold">CERRAR SESIÓN</button>
+            </div>
         </div>
 
-        <div id="info" class="content hidden p-4">
-            <h2 class="text-xl text-purple-500 mb-4 border-b border-purple-500 pb-2">INFORMACIÓN DEL CREADOR</h2>
-            <div class="bg-gray-900 p-4 rounded">
-                <h3 class="text-lg font-bold text-white mb-2">Scott Cawthon: El Cerebro de la Noche</h3>
-                <p class="text-gray-300 mb-4">Scott Cawthon es el desarrollador de videojuegos estadounidense, escritor y productor detrás de la aclamada y aterradora franquicia Five Nights at Freddy's (FNaF). Su carrera comenzó con juegos cristianos antes de pivotar hacia el terror. Después de recibir críticas sobre sus modelos de personajes (que parecían "animatrónicos aterradores"), tomó la retroalimentación y la transformó en un fenómeno mundial del terror. Es conocido por su discreción y por crear una de las narrativas más profundas y complejas del mundo de los videojuegos.</p>
+        <div class="w-3/4 bg-gray-900 p-4 rounded-lg flex flex-col">
+
+            <div id="auth-section" class="flex flex-col items-center justify-center h-full space-y-4">
+                <h1 class="text-4xl text-yellow-500 mb-6">Acceso de Guardia</h1>
+                <input id="auth-username" type="text" placeholder="Nombre de Guardia" class="w-full max-w-md p-3 bg-gray-700 rounded text-lg border border-yellow-500 focus:ring-yellow-500 focus:border-yellow-500 placeholder-gray-400">
+                <input id="auth-password" type="password" placeholder="Contraseña de Turno" class="w-full max-w-md p-3 bg-gray-700 rounded text-lg border border-yellow-500 focus:ring-yellow-500 focus:border-yellow-500 placeholder-gray-400">
+                <button onclick="signInUser()" class="w-full max-w-md p-3 bg-green-600 hover:bg-green-500 rounded text-xl text-black font-bold transition duration-150">INICIAR SESIÓN</button>
+                <button onclick="signUpUser()" class="w-full max-w-md p-3 bg-blue-600 hover:bg-blue-500 rounded text-xl text-black font-bold transition duration-150">REGISTRAR NUEVO GUARDIA</button>
+            </div>
+
+            <div id="feed-section" class="hidden h-full flex flex-col">
+                <div class="flex mb-4 space-x-2">
+                    <input id="search-input" type="text" onkeydown="if(event.key==='Enter')handleSearch()" placeholder="Buscar teorías o usuarios..." class="flex-grow p-3 bg-gray-700 rounded text-lg border border-yellow-500 placeholder-gray-400">
+                    <button onclick="handleSearch()" class="p-3 bg-yellow-600 hover:bg-yellow-500 rounded text-black font-bold transition duration-150">Buscar</button>
+                    <button onclick="showPostModal()" class="p-3 bg-green-600 hover:bg-green-500 rounded text-black font-bold transition duration-150">Publicar</button>
+                </div>
                 
-                <p class="text-sm text-yellow-400 mt-4 border-t border-yellow-700 pt-2">
-                    ⚠️ **Aclaración de Derechos de Autor:** Todos los derechos de autor, personajes, historia, arte y concepto de Five Nights at Freddy's y sus elementos relacionados (incluyendo la marca Fazbear) son propiedad total de Scott Cawthon. Esta plataforma es un tributo y una comunidad de fans sin fines de lucro.
-                </p>
-            </div>
-        </div>
+                <div id="search-results-container" class="mb-4 hidden p-3 bg-gray-700 rounded-lg overflow-y-auto max-h-40">
+                    <h3 class="text-xl text-yellow-500 mb-2 border-b border-yellow-500">Resultados de Búsqueda</h3>
+                    <div id="user-results" class="mb-3"></div>
+                    <div id="post-results"></div>
+                </div>
 
-        <button id="fab" class="fab" onclick="openPostModal(currentTab)">
-             <img id="fab-avatar" src="https://placehold.co/56x56/1a1a1a/9333ea?text=+" class="w-full h-full rounded-full border-2 border-white">
-        </button>
+                <div id="feed-container" class="flex-grow space-y-4 overflow-y-auto">
+                    </div>
+            </div>
+
+            <div id="profile-section" class="hidden h-full flex flex-col">
+                 <div id="profile-details" class="bg-gray-700 p-4 rounded-lg mb-4">
+                    <h2 class="text-3xl text-yellow-500 mb-2">Detalles del Guardia</h2>
+                    <p class="text-lg">Nombre: <span id="p-name" class="font-bold"></span></p>
+                    <p class="text-lg">Rol: <span id="p-role" class="text-red-400 font-bold"></span></p>
+                    <p class="text-lg">Tokens: <span id="p-tokens" class="text-green-400 font-bold"></span></p>
+                    <p class="text-lg">Gear Equipado: <span id="p-gear" class="font-bold text-blue-400">Ninguno</span></p>
+                </div>
+                <h2 class="2xl text-yellow-500 mb-2 border-b border-yellow-500">Mis Publicaciones</h2>
+                <div id="my-posts-container" class="flex-grow space-y-4 overflow-y-auto">
+                    </div>
+            </div>
+
+            <div id="chat-section" class="hidden h-full flex flex-col">
+                <h2 class="text-3xl text-yellow-500 mb-2 border-b border-yellow-500">Chat Rápido (Guardias)</h2>
+                <div id="chat-messages" class="flex-grow overflow-y-auto space-y-3 p-2 mb-4 bg-gray-700 rounded-lg">
+                    </div>
+                <div class="flex">
+                    <input id="chat-input" type="text" onkeydown="if(event.key==='Enter')sendMessage()" placeholder="Escribe un mensaje rápido..." class="flex-grow p-3 bg-gray-800 rounded-l-lg text-lg border border-yellow-500 placeholder-gray-400">
+                    <button onclick="sendMessage()" class="p-3 bg-yellow-600 hover:bg-yellow-500 rounded-r-lg text-black font-bold transition duration-150">Enviar</button>
+                </div>
+            </div>
+
+            <div id="shop-section" class="hidden h-full flex flex-col">
+                <h2 class="text-3xl text-yellow-500 mb-4 border-b border-yellow-500">Tienda de Gear (Accesorios)</h2>
+                <div id="shop-container" class="flex-grow grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto">
+                    </div>
+            </div>
+
+            <div id="cameras-section" class="hidden h-full flex flex-col">
+                <h2 class="text-3xl text-yellow-500 mb-4 border-b border-yellow-500">Monitoreo de Cámaras</h2>
+                <div class="flex space-x-4 mb-4">
+                    <div id="map-container" class="w-1/2 bg-gray-700 p-2 rounded-lg relative h-64 border-4 border-yellow-500">
+                        <img src="https://i.imgur.com/K3pW11O.png" alt="Mapa de Pizzeria" class="w-full h-full object-cover">
+                        </div>
+                    <div id="camera-view" class="w-1/2 bg-gray-700 p-2 rounded-lg h-64 relative border-4 border-red-500 flex items-center justify-center overflow-hidden">
+                         <div id="cam-name" class="absolute top-1 left-1 bg-gray-900 text-red-500 text-lg px-2 rounded z-10">CAM 01</div>
+                        <img id="current-camera-image" src="https://i.imgur.com/8QZ9d7m.png" alt="Vista de Cámara" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <h3 class="text-2xl text-yellow-500 mb-2 border-b border-yellow-500">Alertas de Cámara</h3>
+                <div class="flex space-x-2 mb-4">
+                     <input id="camera-alert-input" type="text" onkeydown="if(event.key==='Enter')sendCameraAlert()" placeholder="Enviar alerta sobre la cámara actual..." class="flex-grow p-3 bg-gray-700 rounded text-lg border border-yellow-500 placeholder-gray-400">
+                    <button onclick="sendCameraAlert()" class="p-3 bg-red-600 hover:bg-red-500 rounded text-black font-bold transition duration-150">ALERTAR</button>
+                </div>
+                <div id="camera-alerts-container" class="flex-grow space-y-2 overflow-y-auto">
+                    </div>
+            </div>
+            
+        </div>
     </div>
 
-    <div id="post-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 p-4 rounded border border-purple-500 w-full max-w-md">
-            <h3 id="modal-title" class="text-purple-300 mb-2">NUEVA TEORÍA</h3>
-            <textarea id="post-content" placeholder="Tu teoría..." class="comment-input h-32 resize-none mb-2"></textarea>
-            <label id="file-label" class="block text-sm mb-1 text-purple-400">Imagen (Máx 5MB)</label>
-            <input type="file" id="post-file" accept="image/*" class="comment-input mb-2" data-max-size="5242880">
-            <p id="video-warning" class="text-xs text-red-400 mb-2 hidden">⚠️ Solo videos de hasta 15 segundos (.mp4, .mov).</p>
-            <button id="submit-post-btn" onclick="submitPost()" class="pizza-btn w-full">PUBLICAR</button>
-            <button onclick="closePostModal()" class="mt-2 text-red-400">CERRAR</button>
+    <div id="post-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-lg w-full max-w-lg border-4 border-yellow-500">
+            <h2 class="text-3xl text-yellow-500 mb-4">Nueva Teoría (Post)</h2>
+            <textarea id="post-content" placeholder="Escribe tu teoría sobre la pizzería..." class="w-full p-3 bg-gray-700 rounded text-lg border border-yellow-500 mb-4 h-32 resize-none placeholder-gray-400"></textarea>
+            <input id="post-image" type="text" placeholder="URL de Imagen (Opcional)" class="w-full p-3 bg-gray-700 rounded text-lg border border-yellow-500 mb-4 placeholder-gray-400">
+            <div class="flex justify-end space-x-4">
+                <button onclick="hidePostModal()" class="py-2 px-4 bg-red-600 hover:bg-red-500 rounded text-white font-bold">Cancelar</button>
+                <button onclick="submitPost()" class="py-2 px-4 bg-green-600 hover:bg-green-500 rounded text-black font-bold">Enviar Teoría</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="comments-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-lg w-full max-w-xl h-5/6 flex flex-col border-4 border-yellow-500">
+            <h2 class="text-3xl text-yellow-500 mb-4 border-b border-yellow-500">Comentarios</h2>
+            <div id="comments-list" class="flex-grow overflow-y-auto space-y-3 p-2 mb-4 bg-gray-700 rounded-lg">
+                </div>
+            <div class="flex mt-auto">
+                <input id="comment-input" type="text" onkeydown="if(event.key==='Enter')addComment(COMMENT_POST_ID)" placeholder="Escribe tu comentario..." class="flex-grow p-3 bg-gray-800 rounded-l-lg text-lg border border-yellow-500 placeholder-gray-400">
+                <button onclick="addComment(COMMENT_POST_ID)" class="p-3 bg-yellow-600 hover:bg-yellow-500 rounded-r-lg text-black font-bold transition duration-150">Comentar</button>
+            </div>
+             <button onclick="hideCommentsModal()" class="mt-4 py-2 px-4 bg-red-600 hover:bg-red-500 rounded text-white font-bold">Cerrar</button>
         </div>
     </div>
 
     <script>
-        // === TUS LLAVES ===
-        const SUPABASE_URL = 'https://fnoowiwoqexnlrmhilau.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZub293aXdvcWV4bmxybWhpbGF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjY2OTYsImV4cCI6MjA3Njc0MjY5Nn0.yrPI1mqQ-xRYmEKEFFUhAoOOHKo4VZsW0m15B5RbXE4';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // === VARIABLES GLOBALES Y CONSTANTES V13.3 ===
-        let profilesCache = {};
-        let currentTab = 'feed';
-        let targetUserId = null; 
-        let loginTime = null; 
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB en bytes 
-        const DEFAULT_AVATAR = 'https://placehold.co/40x40/1a1a1a/9333ea?text=U';
+        // --- CONFIGURACIÓN SUPABASE (DEBES REEMPLAZAR CON TUS CLAVES) ---
+        const SUPABASE_URL = 'TU_SUPABASE_URL'; // URL del proyecto
+        const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY'; // Clave pública 'anon'
         
-        // UX-1: INTERVALO DE AUTOREFRESH (30 segundos)
-        const REFRESH_INTERVAL = 30000; 
+        // Inicializar Supabase
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ECON-2: ÍTEMS FIJOS DE LA TIENDA
-        const STORE_ITEMS = [
-             { id: 'SKIN1', name: 'Parche de Pirate Cove', cost: 10, url: 'https://placehold.co/100x100/5b21b6/fff?text=PARCHE' },
-             { id: 'SKIN2', name: 'Gafas de Visión Nocturna', cost: 25, url: 'https://placehold.co/100x100/111/4d7c0f?text=GOGGLES' },
-             { id: 'SKIN3', name: 'Ojo de Endoskeleton', cost: 50, url: 'https://placehold.co/100x100/111/f59e0b?text=EYE' },
-             { id: 'SKIN4', name: 'Sombrero de Guardia', cost: 100, url: 'https://placehold.co/100x100/1e293b/fff?text=HAT' }
-        ];
-        
-        // UX-2: ESTADOS FICTICIOS DE ANIMATRÓNICOS PARA EL MAPA
-        const ANIMATRONIC_STATUS = [
-            { name: 'Freddy Fazbear', status: 'Inactivo', location: 'Show Stage' },
-            { name: 'Bonnie the Bunny', status: 'Movimiento', location: 'Backstage' },
-            { name: 'Chica the Chicken', status: 'Reporte de ruido', location: 'Kitchen (Audio ON)' },
-            { name: 'Foxy the Pirate', status: 'Desconocido', location: 'Pirate Cove' }
-        ];
+        // Variables Globales
+        let USER_ID = null;
+        let USER_NAME = null;
+        let USER_AVATAR = 'https://i.imgur.com/8QZ9d7m.png'; // Avatar por defecto
+        let USER_GEAR_ID = null;
+        let USER_GEAR_URL = null;
+        let USER_TOKENS = 0;
+        let IS_ADMIN = false; 
+        let CURRENT_CAMERA = 'CAM 01';
+        let COMMENT_POST_ID = null;
 
-        // === ID ÚNICO Y ADMINISTRADOR ===
-        const ADMIN_USER_ID = 'user_1761249985103_s9rt1tp1j'; 
-        let USER_ID;
-        let IS_ADMIN;
-        let maintenanceMode = false;
-        
-        function getUserId() {
-             let id = localStorage.getItem('userId');
-             if (!id) {
-                 id = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-                 localStorage.setItem('userId', id);
-             }
-             return id;
-         }
-
-        // ===================================
-        // === FUNCIONES DE AUTH Y RELOJ (SIN CAMBIOS) ===
-        // ===================================
-
-        function showLogin() {
-             document.getElementById('login-section').classList.remove('hidden');
-             document.getElementById('create-section').classList.add('hidden');
-             document.getElementById('auth-title').textContent = 'INICIAR TURNO DE NOCHE';
-             document.getElementById('login-pin').value = '';
-        }
-
-        async function showCreateProfile() {
-            const { data: config } = await supabase.from('config').select('maintenance_mode').single();
-            maintenanceMode = config ? config.maintenance_mode : false;
-
-            if (maintenanceMode) {
-                 document.getElementById('maintenance-warning').classList.remove('hidden');
-                 document.getElementById('create-section').querySelector('.pizza-btn').disabled = true;
-            } else {
-                 document.getElementById('maintenance-warning').classList.add('hidden');
-                 document.getElementById('create-section').querySelector('.pizza-btn').disabled = false;
-            }
-
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('create-section').classList.remove('hidden');
-            document.getElementById('auth-title').textContent = 'CREAR NÚMERO DE GUARDIA';
-            document.getElementById('new-name').value = '';
-            document.getElementById('new-pin').value = '';
-        }
-
-        async function loginWithPin() {
-             const pin = document.getElementById('login-pin').value;
-             if (pin.length !== 4) {
-                 alert('El Número de Guardia debe ser de 4 dígitos.');
-                 return;
-             }
-
-             const userId = getUserId();
-             
-             const { data: profile } = await supabase.from('profiles').select('pin').eq('user_id', userId).single();
-
-             if (profile && profile.pin === pin) {
-                 startApp(); 
-                 return;
-             }
-             
-             const { data: profileMatch } = await supabase.from('profiles').select('*').eq('pin', pin).single();
-
-             if (profileMatch) {
-                 localStorage.setItem('userId', profileMatch.user_id);
-                 startApp();
-             } else {
-                 alert('Número de Guardia o ID incorrecto. Intenta de nuevo o crea un perfil.');
-             }
-        }
-        
-        async function createNewProfile() {
-             const name = document.getElementById('new-name').value.trim();
-             const pin = document.getElementById('new-pin').value;
-
-             if (!name || pin.length !== 4) {
-                 alert('Nombre de usuario y PIN de 4 dígitos son obligatorios.');
-                 return;
-             }
-
-             if (maintenanceMode) {
-                 alert('El ingreso de nuevos guardias está temporalmente cerrado por mantenimiento.');
-                 return;
-             }
-             
-             const createBtn = document.getElementById('create-section').querySelector('.pizza-btn');
-             createBtn.textContent = 'CARGANDO...';
-             createBtn.disabled = true;
-
-             const { data: existing } = await supabase.from('profiles').select('*').or(`name.eq.${name},pin.eq.${pin}`);
-             if (existing && existing.length > 0) {
-                 if (existing.some(p => p.name === name)) {
-                     alert('El nombre de usuario ya está en uso. Elige otro.');
-                 }
-                 if (existing.some(p => p.pin === pin)) {
-                     alert('Ese Número de Guardia (PIN) ya está en uso. Elige otro.');
-                 }
-                 createBtn.textContent = 'CREAR PERFIL';
-                 createBtn.disabled = false;
-                 return;
-             }
-
-             const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-             
-             // ECON-1: Se añade faz_tokens: 0
-             const { error } = await supabase.from('profiles').insert({
-                 user_id: newUserId,
-                 name: name,
-                 pin: pin,
-                 bio: 'Nuevo guardia de noche.',
-                 faz_tokens: 0 
-             });
-
-             if (error) {
-                 console.error(error);
-                 alert('Error al crear el perfil. Intenta de nuevo.');
-                 createBtn.textContent = 'CREAR PERFIL';
-                 createBtn.disabled = false;
-                 return;
-             }
-
-             localStorage.setItem('userId', newUserId);
-             startApp();
-        }
-
-        function handleAuth() {
-             USER_ID = getUserId();
-             IS_ADMIN = (USER_ID === ADMIN_USER_ID); 
-             document.getElementById('display-user-id').textContent = USER_ID;
-             
-             if (USER_ID.startsWith('temp_')) {
-                 document.getElementById('app-monitor').classList.add('hidden');
-                 document.getElementById('auth-screen').classList.remove('hidden');
-                 showCreateProfile();
-             } else {
-                 document.getElementById('app-monitor').classList.add('hidden');
-                 document.getElementById('auth-screen').classList.remove('hidden');
-                 showLogin();
-             }
-        }
-        
-        function logout() {
-            if (confirm('¿Estás seguro de que quieres cerrar tu turno de noche? Deberás ingresar tu PIN nuevamente.')) {
-                 localStorage.removeItem('userId'); 
-                 window.location.reload();
-            }
-        }
-
-        let clockInterval;
-        const totalGameMinutes = 360; // 6 horas
-        
-        function formatGameTimeDisplay(gameMinutes) {
-             let hours = Math.floor(gameMinutes / 60);
-             let minutes = gameMinutes % 60;
-
-             if (hours >= 6) return '06:00 AM';
-
-             const hourDisplay = hours === 0 ? '12' : (hours < 10 ? '0' + hours : hours);
-             const minuteDisplay = minutes < 10 ? '0' + minutes : minutes;
-
-             if (hours === 0) return `12:${minuteDisplay} AM`; 
-             return `${hourDisplay}:${minuteDisplay} AM`;
-        }
-        
-        function formatTime(ms) {
-             const seconds = Math.floor(ms / 1000);
-             const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-             const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-             const s = String(seconds % 60).padStart(2, '0');
-             return `${h}:${m}:${s}`;
-        }
-        
-        function updateClock() {
-             if (loginTime) {
-                 const elapsed = Date.now() - loginTime;
-                 document.getElementById('session-time').textContent = formatTime(elapsed);
-
-                 const secondsElapsed = Math.floor(elapsed / 1000);
-                 const gameMinutes = Math.min(secondsElapsed, totalGameMinutes);
-
-                 document.getElementById('clock').textContent = formatGameTimeDisplay(gameMinutes);
-             }
-        }
-
-        function startApp() {
-             USER_ID = getUserId();
-             IS_ADMIN = (USER_ID === ADMIN_USER_ID); 
-             document.getElementById('display-user-id').textContent = USER_ID;
-             
-             loginTime = Date.now(); 
-
-             document.getElementById('auth-screen').classList.add('hidden');
-             document.getElementById('app-monitor').classList.remove('hidden');
-
-             clearInterval(clockInterval);
-             clockInterval = setInterval(updateClock, 1000);
-             updateClock();
-
-             initApp();
-        }
-
-        setTimeout(() => {
-            document.getElementById('progress').style.width = '100%';
-            setTimeout(() => {
-                document.getElementById('splash').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('splash').remove();
-                    handleAuth(); 
-                }, 1000);
-            }, 800);
-        }, 1500);
-        
-        // === CAMBIOS V13.1: INICIO DE AUTOREFRESH ===
-        let autoRefreshInterval;
-        
-        function startAutoRefresh() {
-            clearInterval(autoRefreshInterval);
-            autoRefreshInterval = setInterval(() => {
-                if (currentTab === 'feed') {
-                    loadFeed();
-                } else if (currentTab === 'cameras') {
-                    loadCameras();
-                } else if (currentTab === 'map') {
-                    loadMap(false); // Refresca solo el reporte, no el mapa base
-                }
-            }, REFRESH_INTERVAL);
-        }
+        // --- AUTHENTICATION FUNCTIONS ---
 
         async function initApp() {
-            if (IS_ADMIN) {
-                 document.getElementById('admin-options').classList.remove('hidden');
-                 await loadMaintenanceMode();
-            } else {
-                 document.getElementById('admin-options').classList.add('hidden');
-            }
-
-            loadProfile();
-            loadFeed();
-            loadCameras();
-            loadChat();
-            loadShop(); 
-            loadMap(true); // Carga inicial del mapa
-            setupRealtime();
-            startAutoRefresh(); // UX-1: Inicia el refresco automático
-            switchTab('feed', false); 
-        }
-
-        async function loadMaintenanceMode() {
-            const { data: config } = await supabase.from('config').select('maintenance_mode').single();
-            maintenanceMode = config ? config.maintenance_mode : false;
-            document.getElementById('maintenance-mode').checked = maintenanceMode;
-        }
-
-        async function toggleMaintenanceMode() {
-            const isChecked = document.getElementById('maintenance-mode').checked;
-            maintenanceMode = isChecked;
-
-            const { error } = await supabase.from('config').upsert(
-                 { id: 1, maintenance_mode: isChecked }, 
-                 { onConflict: 'id' }
-            );
-
-            if (error) {
-                 alert('Error al cambiar el modo mantenimiento: ' + error.message);
-                 document.getElementById('maintenance-mode').checked = !isChecked; 
-                 maintenanceMode = !isChecked;
-            } else {
-                 alert(`Modo Mantenimiento ${isChecked ? 'ACTIVADO' : 'DESACTIVADO'}.`);
-            }
-        }
-
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
-        }
-
-        function switchTab(tab, autoClose = true) {
-            currentTab = tab;
-            document.querySelectorAll('.content').forEach(c => c.classList.add('hidden'));
-            
-            let headerText = 'Fazbear Social Hub';
-            if (IS_ADMIN) {
-                 headerText += ' (ADMIN)';
-            }
-            document.getElementById('header-title').textContent = headerText;
-
-            document.getElementById(tab).classList.remove('hidden');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            const tabButton = document.getElementById('tab-' + tab);
-            if (tabButton) {
-                tabButton.classList.add('active');
-            }
-
-            if (tab === 'feed' || tab === 'cameras') {
-                 document.getElementById('fab').style.display = 'flex';
-            } else {
-                 document.getElementById('fab').style.display = 'none';
-            }
-
-            if (autoClose && !document.getElementById('sidebar').classList.contains('-translate-x-full')) {
-                 toggleSidebar();
-            }
-            
-            if (tab === 'feed') {
-                 localStorage.removeItem('hasNewComment'); 
-                 localStorage.removeItem('hasNewLike'); 
-                 checkNotifications(); 
-            }
-            if (tab === 'shop') { 
-                 loadShop();
-            }
-            if (tab === 'map') { // UX-2: Cargar el mapa al cambiar de pestaña
-                 loadMap(false);
-            }
-            if (tab === 'chat') {
-                 // Forzar el scroll hasta abajo al abrir el chat
-                 const chatMessages = document.getElementById('chat-messages');
-                 setTimeout(() => {
-                      chatMessages.scrollTop = chatMessages.scrollHeight;
-                 }, 50);
-            }
-        }
-
-        function openPostModal() {
-             document.getElementById('post-modal').classList.remove('hidden'); 
-             document.getElementById('post-content').value = '';
-             document.getElementById('post-file').value = ''; 
-             document.getElementById('submit-post-btn').textContent = 'PUBLICAR'; 
-             document.getElementById('submit-post-btn').disabled = false;
-
-             if (currentTab === 'cameras') {
-                 document.getElementById('modal-title').textContent = 'NUEVA GRABACIÓN DE CÁMARA';
-                 document.getElementById('file-label').textContent = 'Video (Máx 5MB)';
-                 document.getElementById('post-file').accept = 'video/mp4,video/quicktime'; 
-                 document.getElementById('video-warning').classList.remove('hidden');
-                 document.getElementById('post-content').placeholder = 'Descripción del clip...';
-             } else {
-                 document.getElementById('modal-title').textContent = 'NUEVA TEORÍA';
-                 document.getElementById('file-label').textContent = 'Imagen (Máx 5MB)';
-                 document.getElementById('post-file').accept = 'image/*';
-                 document.getElementById('video-warning').classList.add('hidden');
-                 document.getElementById('post-content').placeholder = 'Tu teoría...';
-             }
-        }
-        function closePostModal() { 
-             document.getElementById('post-modal').classList.add('hidden'); 
-             document.getElementById('post-content').value = '';
-             document.getElementById('post-file').value = ''; 
-        }
-
-        // === FUNCIONES DE AVATAR CON GEAR ===
-        function renderAvatarHTML(profile, size = 'w-10 h-10') {
-             const profileAvatar = profile.avatar || DEFAULT_AVATAR;
-             const gearStyle = profile.gear_url ? `
-                 <img src="${profile.gear_url}" class="avatar-gear">
-             ` : '';
-             
-             return `
-                 <div class="avatar-container ${size} flex-shrink-0">
-                     <img src="${profileAvatar}" class="avatar-base">
-                     ${gearStyle}
-                 </div>
-             `;
-        }
-
-        async function getProfileInfo(userId) {
-            if (profilesCache[userId]) return profilesCache[userId];
-
-            const { data: profileData } = await supabase.from('profiles').select('*, faz_tokens, gear_url').eq('user_id', userId).single();
-            const { count: followersCount } = await supabase.from('followers').select('*', { count: 'exact' }).eq('following_id', userId);
-            
-            const defaultProfile = {
-                 name: userId === USER_ID ? 'TÚ (Sin Nombre)' : 'Anónimo',
-                 bio: userId === USER_ID ? 'Aún no has escrito tu biografía.' : 'Este usuario aún no ha escrito su biografía.',
-                 avatar: DEFAULT_AVATAR
-            };
-
-            const profile = profileData ? {
-                 name: profileData.name,
-                 bio: profileData.bio || defaultProfile.bio,
-                 avatar: profileData.avatar_url || DEFAULT_AVATAR,
-                 followers: followersCount || 0,
-                 pin: profileData.pin,
-                 faz_tokens: profileData.faz_tokens || 0, 
-                 gear_url: profileData.gear_url 
-            } : { ...defaultProfile, avatar: DEFAULT_AVATAR, followers: followersCount || 0, faz_tokens: 0, gear_url: null };
-            
-            profilesCache[userId] = profile;
-            return profile;
-        }
-
-        // === SUPABASE STORAGE (SIN CAMBIOS) ===
-        async function uploadFile(file, bucket, folder = 'public') {
-            if (!file) return null;
-            
-            if (file.size > MAX_FILE_SIZE) {
-                 alert(`El archivo es muy grande. El límite es de ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
-                 return null;
-            }
-
-            const filePath = `${folder}/${USER_ID}_${Date.now()}_${file.name}`;
-            const { error } = await supabase.storage.from(bucket).upload(filePath, file);
-
-            if (error) {
-                alert('Error subiendo el archivo: ' + error.message);
-                return null;
-            }
-            const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-            return data.publicUrl;
-        }
-
-
-        // === FEED Y INTERACCIONES ===
-        window.handleSearch = () => {
-             const query = document.getElementById('search-input').value.trim();
-             loadFeed(false, query);
-        }
-
-        async function loadFeed(isManualRefresh = false, searchQuery = '') {
-             if (isManualRefresh) profilesCache = {}; 
-
-             let query = supabase.from('posts').select('*').order('created_at', { ascending: false });
-
-             if (searchQuery) {
-                 query = query.or(`content.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`);
-             }
-
-            const { data: posts } = await query;
-            const { data: userLikes } = await supabase.from('likes').select('post_id').eq('user_id', USER_ID);
-            const liked = userLikes?.map(l => l.post_id) || [];
-            
-            const userIds = [...new Set(posts.map(p => p.user_id))];
-            await Promise.all(userIds.map(id => getProfileInfo(id)));
-
-            const container = document.getElementById('feed');
-            
-            // Reconstrucción parcial para mantener el input y el botón
-            const contentHTML = `
-                <div class="mb-4">
-                    <input type="text" id="search-input" placeholder="Buscar teorías, usuarios o temas..." class="comment-input" onkeyup="handleSearch()" value="${searchQuery}">
-                </div>
-                <div class="flex justify-center mb-4">
-                    <button onclick="loadFeed(true)" class="pizza-btn">🔄 ACTUALIZAR FEED</button>
-                </div>
-            `;
-            
-            const postsHTML = posts.length === 0 
-                ? (searchQuery ? `<p class="text-center text-red-400">No se encontraron resultados para "${searchQuery}"</p>` : '<p class="text-center text-purple-500">¡Sé el primero!</p>')
-                : posts.map(post => {
-                    const isMyPost = post.user_id === USER_ID;
-                    const hasLiked = liked.includes(post.id);
-                    const profile = profilesCache[post.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-                    
-                    return `
-                        <div class="post" id="post-${post.id}">
-                            <div class="flex items-center mb-2">
-                                ${renderAvatarHTML(profile, 'w-10 h-10')} 
-                                <div>
-                                    <p onclick="viewUserProfile('${post.user_id}')" class="font-bold text-purple-400 username-link">${profile.name} ${isMyPost ? '<span class="text-white">(TÚ)</span>' : ''}</p>
-                                    <p class="text-xs text-gray-400">${new Date(post.created_at).toLocaleString()}</p>
-                                </div>
-                            </div>
-                            <p>${post.content}</p>
-                            ${post.image ? `<img src="${post.image}" class="mt-2 max-h-64 w-full object-contain rounded">` : ''}
-                            <div class="flex items-center mt-2">
-                                <button onclick="likePost('${post.id}', this, '${post.user_id}')" class="pizza-btn mr-2 ${hasLiked ? 'active-like' : ''}">
-                                    Pizza Slice ${post.likes || 0}
-                                </button>
-                                <button onclick="toggleComments('${post.id}')" class="text-sm text-purple-400" id="comment-btn-${post.id}">Comments</button>
-                                ${(isMyPost || IS_ADMIN) ? `<span class="delete-btn" onclick="deletePost('${post.id}', 'posts')">[X BORRAR]</span>` : ''}
-                            </div>
-                            <div id="comments-${post.id}" class="hidden mt-2">
-                                <div id="comment-list-${post.id}"></div>
-                                <input type="text" placeholder="Comentar..." class="comment-input mt-1" onkeydown="if(event.key==='Enter') { addComment('${post.id}', this, '${post.user_id}'); return false; }">
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            
-            container.innerHTML = contentHTML + postsHTML;
-            posts.forEach(post => loadComments(post.id));
-        }
-        
-        // MOD-1: Función para verificar si un usuario ha bloqueado a otro
-        async function checkIfBlocked(blockerId, blockedId) {
-             const { data } = await supabase.from('blocked_users')
-                 .select('id')
-                 .eq('blocker_id', blockerId)
-                 .eq('blocked_id', blockedId)
-                 .single();
-             return !!data;
-        }
-
-        window.likePost = async (postId, buttonElement, postOwnerId) => {
-            // MOD-1: Check si el dueño del post (blockerId) me ha bloqueado a mí (blockedId)
-            const isBlocked = await checkIfBlocked(postOwnerId, USER_ID);
-            if (isBlocked) {
-                alert('ERROR: El dueño de esta publicación te ha bloqueado. No puedes darle "Pizza Slice".');
-                return;
-            }
-            
-            const isLiked = buttonElement.classList.contains('active-like');
-            const currentCount = parseInt(buttonElement.textContent.match(/\d+/)[0] || 0);
-
-            let newCount = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
-            buttonElement.classList.toggle('active-like', !isLiked);
-            buttonElement.textContent = `Pizza Slice ${newCount}`;
-            buttonElement.disabled = true; 
-
-            if (isLiked) {
-                await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', USER_ID);
-            } else {
-                const { error } = await supabase.from('likes').insert({ post_id: postId, user_id: USER_ID });
-                if (error && error.code !== '23505') console.error(error); 
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                USER_ID = user.id;
+                await loadUserProfile(user.id);
+                document.getElementById('splash').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('auth-section').classList.add('hidden');
+                showSection('feed');
                 
-                // ECON-1: INCREMENTAR TOKENS AL DUEÑO DEL POST
-                if (USER_ID !== postOwnerId) {
-                    const { data: ownerProfile } = await supabase.from('profiles').select('faz_tokens').eq('user_id', postOwnerId).single();
-                    if (ownerProfile) {
-                        await supabase.from('profiles').update({ faz_tokens: ownerProfile.faz_tokens + 1 }).eq('user_id', postOwnerId);
-                    }
-                    localStorage.setItem('hasNewLike', 'true');
-                    checkNotifications();
-                }
-            }
-            
-            const { count } = await supabase.from('likes').select('*', { count: 'exact' }).eq('post_id', postId);
-            await supabase.from('posts').update({ likes: count }).eq('id', postId);
-            
-            // CORRECCIÓN V13.1: Forzar actualización inmediata de Tokens/Likes
-            profilesCache = {}; 
-            await loadProfile(); 
-            
-            buttonElement.disabled = false; 
-        };
+                // Cargar datos al iniciar
+                loadFeed(true);
+                loadChat();
+                loadShop();
+                loadCameras(true);
 
-        // CORRECCIÓN V13.3: Se mejora la estabilidad de la función de comentarios y se fuerza la apertura.
-        window.addComment = async (postId, input, postOwnerId) => {
-            if (!input.value.trim()) return;
-            
-            const isBlocked = await checkIfBlocked(postOwnerId, USER_ID);
-            if (isBlocked) {
-                 alert('ERROR: El dueño de esta publicación te ha bloqueado. No puedes comentar.');
-                 return;
-            }
-            
-            const { data: profile } = await supabase.from('profiles').select('name, avatar_url').eq('user_id', USER_ID).single();
-            
-            input.disabled = true; 
-
-            // 1. Usamos await para asegurar la inserción antes de recargar
-            const { error } = await supabase.from('comments').insert({
-                post_id: postId,
-                user_id: USER_ID,
-                name: profile?.name || 'Anónimo',
-                avatar: profile?.avatar_url,
-                text: input.value.trim()
-            });
-
-            if (error) {
-                 console.error('Error al insertar comentario:', error);
-                 alert('Error al enviar el comentario. Intenta de nuevo.');
-                 input.disabled = false;
-                 return;
-            }
-
-            input.value = '';
-            
-            if (USER_ID !== postOwnerId) {
-                 localStorage.setItem('hasNewComment', 'true');
-                 checkNotifications();
-            }
-            
-            // 2. Esperar la recarga de comentarios para que se muestren inmediatamente y actualizar el contador
-            await loadComments(postId);
-
-            // 3. FIX V13.3: Asegurar que la sección de comentarios esté abierta
-            const commentsDiv = document.getElementById(`comments-${postId}`);
-            if (commentsDiv.classList.contains('hidden')) {
-                 commentsDiv.classList.remove('hidden');
-            }
-            
-            input.disabled = false; // Habilitar de nuevo
-        };
-
-
-        // === PERFIL DE USUARIO Y BLOQUEO (MOD-1) ===
-        window.viewUserProfile = async (userId) => {
-            targetUserId = userId; 
-            const userProfile = await getProfileInfo(targetUserId);
-            
-            document.getElementById('view-avatar-container').innerHTML = renderAvatarHTML(userProfile, 'w-16 h-16'); // Renderizado con Gear
-
-            document.getElementById('view-name').textContent = userProfile.name;
-            document.getElementById('view-id').textContent = 'ID: ' + targetUserId;
-            document.getElementById('view-bio').textContent = userProfile.bio;
-            document.getElementById('view-name-posts').textContent = userProfile.name;
-            document.getElementById('view-followers').textContent = userProfile.followers;
-            
-            const followBtn = document.getElementById('follow-btn');
-            const blockBtn = document.getElementById('block-btn');
-            
-            if (targetUserId === USER_ID) {
-                 followBtn.style.display = 'none'; 
-                 blockBtn.style.display = 'none'; 
+                // Configurar auto-refresco para Chat y Feed
+                setupRealtime();
+                setInterval(() => {
+                    loadChat();
+                    loadFeed(false);
+                }, 10000); // Refrescar cada 10 segundos
             } else {
-                 followBtn.style.display = 'inline-block';
-                 blockBtn.style.display = 'inline-block';
-
-                 // Lógica del botón SEGUIR
-                 const { data: followData } = await supabase.from('followers').select('*').eq('follower_id', USER_ID).eq('following_id', targetUserId).single();
-                 followBtn.textContent = followData ? 'DEJAR DE SEGUIR' : 'SEGUIR';
-
-                 // MOD-1: Lógica del botón BLOQUEAR
-                 const isBlocked = await checkIfBlocked(USER_ID, targetUserId); // Yo (USER_ID) he bloqueado a targetUserId
-                 blockBtn.textContent = isBlocked ? 'DESBLOQUEAR' : 'BLOQUEAR';
-                 blockBtn.classList.toggle('bg-red-600', !isBlocked);
-                 blockBtn.classList.toggle('bg-gray-500', isBlocked);
-            }
-            
-            // Cargar publicaciones de ese usuario
-            const { data: posts } = await supabase.from('posts').select('*').eq('user_id', targetUserId).order('created_at', { ascending: false });
-            const listContainer = document.getElementById('user-posts-list');
-            listContainer.innerHTML = '';
-
-            if (posts.length === 0) {
-                 listContainer.innerHTML = '<p class="text-center text-gray-500">Este usuario aún no ha hecho ninguna publicación.</p>';
-            } else {
-                 posts.forEach(post => {
-                     const isMyPost = post.user_id === USER_ID;
-                     const div = document.createElement('div');
-                     div.className = 'post';
-                     div.innerHTML = `
-                         <p class="text-xs text-gray-400">${new Date(post.created_at).toLocaleString()}</p>
-                         <p class="mt-1">${post.content}</p>
-                         ${post.image ? `<img src="${post.image}" class="mt-2 max-h-48 w-full object-contain rounded">` : ''}
-                         <div class="flex items-center mt-2">
-                             <span class="text-sm text-yellow-300">Pizza Slice ${post.likes || 0}</span>
-                             <span class="text-sm text-purple-400 ml-4">Comments</span>
-                             ${(isMyPost || IS_ADMIN) ? `<span class="delete-btn" onclick="deletePost('${post.id}', 'posts')">[X BORRAR]</span>` : ''}
-                         </div>
-                     `;
-                     listContainer.appendChild(div);
-                 });
-            }
-
-            switchTab('user-profile-view');
-        };
-
-        // CORRECCIÓN V13.1: Implementación de la función toggleFollow
-        window.toggleFollow = async () => {
-             if (!targetUserId) return;
-
-             const followBtn = document.getElementById('follow-btn');
-             followBtn.disabled = true;
-
-             // 1. Check current status
-             const { data: followData } = await supabase.from('followers').select('*').eq('follower_id', USER_ID).eq('following_id', targetUserId).single();
-
-             if (followData) {
-                 // 2. Unfollow
-                 await supabase.from('followers').delete().eq('follower_id', USER_ID).eq('following_id', targetUserId);
-                 alert(`Has dejado de seguir a ${document.getElementById('view-name').textContent}.`);
-             } else {
-                 // 2. Follow
-                 const { error } = await supabase.from('followers').insert({ follower_id: USER_ID, following_id: targetUserId });
-                 if (error && error.code !== '23505') console.error(error);
-                 alert(`Ahora sigues a ${document.getElementById('view-name').textContent}.`);
-             }
-
-             // 3. Recargar la vista de perfil para actualizar el botón y el contador
-             profilesCache = {}; // Limpia caché para recargar contador de seguidores
-             await viewUserProfile(targetUserId);
-             followBtn.disabled = false;
-        };
-
-        window.toggleBlock = async () => {
-             if (!targetUserId) return;
-             
-             const blockBtn = document.getElementById('block-btn');
-             blockBtn.disabled = true;
-
-             const isCurrentlyBlocked = await checkIfBlocked(USER_ID, targetUserId);
-             
-             if (isCurrentlyBlocked) {
-                 // Desbloquear
-                 await supabase.from('blocked_users').delete().eq('blocker_id', USER_ID).eq('blocked_id', targetUserId);
-                 alert(`Has desbloqueado a ${document.getElementById('view-name').textContent}.`);
-             } else {
-                 // Bloquear
-                 const { error } = await supabase.from('blocked_users').insert({ blocker_id: USER_ID, blocked_id: targetUserId });
-                 if (error && error.code !== '23505') console.error(error);
-                 alert(`Has BLOQUEADO a ${document.getElementById('view-name').textContent}. Ya no podrá interactuar contigo.`);
-             }
-
-             // Recargar la vista de perfil para actualizar el botón
-             viewUserProfile(targetUserId);
-             blockBtn.disabled = false;
-        };
-        
-        // ... (resto de funciones de interacciones) ...
-
-        // === PERFIL Y ESTADÍSTICAS (ECON-1) ===
-        async function loadProfile() {
-            const profile = await getProfileInfo(USER_ID); 
-
-            if (profile) {
-                 document.getElementById('profile-name').value = profile.name || '';
-                 document.getElementById('profile-bio').value = profile.bio || '';
-                 
-                 // Renderiza el avatar con gear
-                 document.getElementById('profile-avatar-display').innerHTML = renderAvatarHTML(profile, 'w-10 h-10');
-                 document.getElementById('fab-avatar').src = profile.avatar || DEFAULT_AVATAR; 
-
-                 document.getElementById('display-user-pin').textContent = profile.pin ? '***' + profile.pin.slice(-1) : 'NO DISPONIBLE';
-                 
-                 // Muestra los tokens
-                 document.getElementById('faz-tokens-display').textContent = profile.faz_tokens; 
-                 document.getElementById('profile-tokens').textContent = profile.faz_tokens;
-                 document.getElementById('shop-tokens-display').textContent = profile.faz_tokens; 
-            } else {
-                 document.getElementById('fab-avatar').src = DEFAULT_AVATAR;
-            }
-            
-             if (IS_ADMIN) {
-                 document.getElementById('header-title').textContent = 'Fazbear Social Hub (ADMIN)';
-            }
-            
-            const { data: posts, count: totalPosts } = await supabase.from('posts').select('likes', { count: 'exact' }).eq('user_id', USER_ID);
-            
-            const totalLikesReceived = posts ? posts.reduce((sum, post) => sum + (post.likes || 0), 0) : 0;
-
-            document.getElementById('profile-total-likes').textContent = totalLikesReceived;
-            document.getElementById('profile-total-posts').textContent = totalPosts || 0;
-        }
-
-        window.saveProfile = async () => {
-            const name = document.getElementById('profile-name').value.trim();
-            const bio = document.getElementById('profile-bio').value.trim();
-            const avatarFileInput = document.getElementById('profile-avatar-file');
-            const avatarFile = avatarFileInput.files[0];
-            const currentProfile = await getProfileInfo(USER_ID);
-            let avatarUrl = currentProfile.avatar || DEFAULT_AVATAR; 
-            const saveBtn = document.getElementById('save-profile-btn');
-            
-            if (!name) {
-                alert('El nombre (Nombre Único) es obligatorio.');
-                return;
-            }
-
-            if (avatarFile && avatarFile.size > MAX_FILE_SIZE) {
-                 alert(`El archivo de avatar es muy grande. El límite es de ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
-                 return;
-            }
-            
-            saveBtn.textContent = 'CARGANDO...';
-            saveBtn.disabled = true;
-
-            if (avatarFile) {
-                avatarUrl = await uploadFile(avatarFile, 'post_images', 'avatars');
-                if (!avatarUrl) {
-                    saveBtn.textContent = 'GUARDAR PERFIL';
-                    saveBtn.disabled = false;
-                    return;
-                }
-            }
-            
-            const { data: nameCheck } = await supabase.from('profiles').select('user_id').eq('name', name).neq('user_id', USER_ID);
-            if (nameCheck && nameCheck.length > 0) {
-                 alert(`ERROR: El nombre de usuario "${name}" ya está en uso por otro guardia.`);
-                 saveBtn.textContent = 'GUARDAR PERFIL';
-                 saveBtn.disabled = false;
-                 return;
-            }
-
-            // Mantenemos el pin, tokens y gear_url
-            const { error: updateError } = await supabase.from('profiles').update({
-                name: name,
-                bio: bio,
-                avatar_url: avatarUrl,
-                pin: currentProfile.pin,
-                faz_tokens: currentProfile.faz_tokens,
-                gear_url: currentProfile.gear_url
-            }).eq('user_id', USER_ID); 
-
-            if (updateError) {
-                console.error('Error al guardar el perfil:', updateError);
-                alert('Error al guardar el perfil en Supabase.');
-                saveBtn.textContent = 'GUARDAR PERFIL';
-                saveBtn.disabled = false;
-                return;
-            }
-
-            profilesCache = {}; 
-            
-            await supabase.from('posts').update({ name: name, avatar: avatarUrl }).eq('user_id', USER_ID);
-            await supabase.from('chat_messages').update({ name: name, avatar: avatarUrl }).eq('user_id', USER_ID);
-            await supabase.from('cameras').update({ name: name, avatar: avatarUrl }).eq('user_id', USER_ID);
-
-            avatarFileInput.value = ''; 
-            
-            loadProfile();
-            saveProfile(); // Recarga para asegurar que todos los caches internos se actualicen
-            saveBtn.textContent = 'GUARDAR PERFIL';
-            saveBtn.disabled = false;
-            alert('Perfil guardado exitosamente!');
-        };
-
-
-        // === TIENDA DE TOKENS (ECON-2) ===
-        function loadShop() {
-             const shopContainer = document.getElementById('shop-items');
-             shopContainer.innerHTML = '';
-             const currentTokens = parseInt(document.getElementById('shop-tokens-display').textContent);
-             const currentProfile = profilesCache[USER_ID] || {};
-
-             STORE_ITEMS.forEach(item => {
-                 const isOwned = currentProfile.gear_url === item.url;
-                 const canAfford = currentTokens >= item.cost;
-                 const buttonText = isOwned ? 'EQUIPADO' : (canAfford ? 'COMPRAR' : `FALTAN ${item.cost - currentTokens} 💰`);
-                 
-                 const div = document.createElement('div');
-                 div.className = 'bg-gray-800 p-4 rounded border border-yellow-500';
-                 div.innerHTML = `
-                     <h3 class="text-lg text-white mb-2">${item.name}</h3>
-                     <div class="flex items-center justify-between mb-3">
-                         <img src="${item.url}" class="w-20 h-20 object-contain rounded border border-gray-600">
-                         <p class="text-2xl text-yellow-400">💰 ${item.cost}</p>
-                     </div>
-                     <button id="buy-btn-${item.id}" onclick="buyGear('${item.id}')" class="pizza-btn w-full ${isOwned ? 'bg-green-600' : ''}" ${!canAfford || isOwned ? 'disabled' : ''}>
-                         ${buttonText}
-                     </button>
-                 `;
-                 shopContainer.appendChild(div);
-             });
-        }
-        
-        // CORRECCIÓN V13.2: Se añade estado de carga y await para forzar la actualización inmediata.
-        window.buyGear = async (itemId) => {
-             const item = STORE_ITEMS.find(i => i.id === itemId);
-             const currentProfile = profilesCache[USER_ID];
-             const button = document.getElementById(`buy-btn-${itemId}`);
-             
-             if (!item || !currentProfile) return;
-
-             if (currentProfile.faz_tokens < item.cost) {
-                 alert('No tienes suficientes Faz-Tokens para comprar este artículo.');
-                 return;
-             }
-             
-             if (button) {
-                 button.disabled = true;
-                 button.textContent = 'PROCESANDO...';
-             }
-
-             if (currentProfile.gear_url === item.url) {
-                 // Si ya lo tiene, se lo quitamos (lo desequipamos)
-                 if (confirm(`¿Quieres DESEQUIPAR ${item.name}?`)) {
-                    await supabase.from('profiles').update({ gear_url: null }).eq('user_id', USER_ID);
-                    profilesCache = {}; 
-                    await loadProfile(); // Se usa await para asegurar la actualización de tokens/gear
-                    loadShop();
-                    alert(`${item.name} desequipado.`);
-                 }
-                 if (button) { button.disabled = false; button.textContent = 'EQUIPADO'; }
-                 return;
-             }
-
-             if (confirm(`¿Estás seguro de que quieres gastar ${item.cost} Faz-Tokens en ${item.name}?`)) {
-                 // 1. Deducir tokens
-                 const newTokens = currentProfile.faz_tokens - item.cost;
-                 
-                 // 2. Aplicar el nuevo Gear URL y guardar
-                 const { error } = await supabase.from('profiles').update({
-                     faz_tokens: newTokens,
-                     gear_url: item.url
-                 }).eq('user_id', USER_ID);
-
-                 if (error) {
-                     console.error('Error al comprar:', error);
-                     alert('Error de compra. Intenta de nuevo.');
-                     if (button) { button.disabled = false; button.textContent = 'COMPRAR'; }
-                     return;
-                 }
-                 
-                 profilesCache = {}; // Limpia caché para recargar tokens y gear
-                 await loadProfile(); // Se usa await para asegurar la actualización de tokens/gear
-                 loadShop();
-                 alert(`¡Compra exitosa! Has gastado ${item.cost} Faz-Tokens. ${item.name} equipado.`);
-             }
-             if (button) { button.disabled = false; button.textContent = 'COMPRAR'; }
-        }
-        
-        // === CAMBIOS V13.1: FUNCIÓN DE MAPA ===
-        function loadMap(isInitialLoad = false) {
-             const reportContainer = document.getElementById('animatronic-status');
-
-             // Lógica ficticia para simular movimiento/estado
-             const statuses = ANIMATRONIC_STATUS.map(a => {
-                 const randomChange = Math.random();
-                 let displayStatus = a.status;
-                 let displayLocation = a.location;
-                 let color = 'text-green-400';
-                 
-                 // Lógica simple de "escalamiento de peligro"
-                 if (randomChange < 0.25) {
-                     displayStatus = 'Localizado, inactivo.';
-                     color = 'text-green-400';
-                 } else if (randomChange < 0.6) {
-                     displayStatus = 'Movimiento detectado.';
-                     color = 'text-yellow-400';
-                     // Cambio de sala simulado para Bonnie y Chica
-                     if (a.name.includes('Bonnie') || a.name.includes('Chica')) {
-                         displayLocation = 'Pasillo Este/Oeste';
-                     }
-                 } else if (randomChange < 0.9) {
-                     displayStatus = 'Alerta Máxima. Posición crítica.';
-                     color = 'text-red-400';
-                     displayLocation = 'Cerca de la Oficina (CAM 7)';
-                 } else {
-                      displayStatus = 'ERROR. FUERA DE LÍNEA.';
-                      color = 'text-gray-500';
-                      displayLocation = 'Desconocida';
-                 }
-
-
-                 return `
-                     <p class="mb-1">
-                         <span class="font-bold">${a.name}:</span> 
-                         <span class="${color}">${displayStatus}</span>
-                         <span class="text-sm text-gray-500 ml-2">(${displayLocation})</span>
-                     </p>
-                 `;
-             }).join('');
-             
-             reportContainer.innerHTML = statuses;
-        }
-
-        // CORRECCIÓN V13.2: Implementación completa de sendChat
-        window.sendChat = async () => {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            const sendBtn = document.querySelector('.send-btn');
-            
-            if (!text) return;
-
-            const profile = await getProfileInfo(USER_ID);
-            
-            sendBtn.disabled = true;
-            input.disabled = true;
-
-            const { error } = await supabase.from('chat_messages').insert({
-                user_id: USER_ID,
-                name: profile.name,
-                avatar: profile.avatar,
-                text: text
-            });
-
-            if (error) {
-                console.error('Error enviando chat:', error);
-                alert('Error al enviar el mensaje de chat.');
-            }
-
-            input.value = '';
-            input.disabled = false;
-            sendBtn.disabled = false;
-            
-            // Realtime se encarga de dibujar el mensaje.
-        };
-
-
-        // === RESTO DE FUNCIONES (loadCameras, loadChat, etc.) ===
-        
-        async function loadCameras(isManualRefresh = false) {
-             if (isManualRefresh) profilesCache = {};
-             const container = document.getElementById('cameras-list');
-             container.innerHTML = '<p class="text-center text-gray-500">Cargando grabaciones...</p>';
-             
-             const { data: cameras } = await supabase.from('cameras').select('*').order('created_at', { ascending: false });
-             
-             const userIds = [...new Set(cameras.map(c => c.user_id))];
-             await Promise.all(userIds.map(id => getProfileInfo(id)));
-
-             container.innerHTML = '';
-             container.innerHTML += cameras.length === 0 ? '<p class="text-center text-gray-500">No hay grabaciones activas.</p>' : '';
-             
-             cameras.forEach(cam => {
-                 const isMyPost = cam.user_id === USER_ID;
-                 const profile = profilesCache[cam.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-
-                 const div = document.createElement('div');
-                 div.className = 'post';
-                 div.innerHTML = `
-                     <div class="flex items-center mb-2">
-                         ${renderAvatarHTML(profile, 'w-10 h-10')} 
-                         <div>
-                             <p onclick="viewUserProfile('${cam.user_id}')" class="font-bold text-purple-400 username-link">${profile.name} ${isMyPost ? '<span class="text-white">(TÚ)</span>' : ''}</p>
-                             <p class="text-xs text-gray-400">${new Date(cam.created_at).toLocaleString()}</p>
-                         </div>
-                     </div>
-                     <video src="${cam.video}" controls class="camera-video mb-2"></video>
-                     <p>${cam.content}</p>
-                     ${(isMyPost || IS_ADMIN) ? `<span class="delete-btn" onclick="deletePost('${cam.id}', 'cameras')">[X BORRAR]</span>` : ''}
-                 `;
-                 container.appendChild(div);
-             });
-        }
-        
-        // FIX V13.3: Ajuste de estilo para mostrar mensajes propios a la derecha
-        const appendChatMessage = (m) => {
-             const container = document.getElementById('chat-messages');
-             const isMyMessage = m.user_id === USER_ID;
-             
-             const profile = profilesCache[m.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-             
-             const div = document.createElement('div');
-             
-             // FLEX DIRECTION AND ALIGNMENT
-             div.className = `flex mb-2 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
-             
-             // MESSAGE BUBBLE STYLE
-             const bubbleClasses = isMyMessage 
-                 ? 'bg-purple-700 text-white p-2 rounded-lg max-w-xs' 
-                 : 'bg-gray-700 text-white p-2 rounded-lg max-w-xs';
-             
-             const messageContent = `
-                 <div class="flex items-end ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}">
-                     <div class="flex-shrink-0 ${isMyMessage ? 'ml-2' : 'mr-2'}">
-                         ${renderAvatarHTML(profile, 'w-8 h-8')} 
-                     </div>
-                     <div class="${bubbleClasses}">
-                         <p class="text-xs text-yellow-300 font-bold ${isMyMessage ? 'text-right' : 'text-left'}">${profile.name} ${isMyMessage ? '<span class="text-white">(TÚ)</span>' : ''}</p>
-                         <p class="text-sm flex items-center justify-between">
-                            <span>${m.text}</span>
-                            ${(isMyMessage || IS_ADMIN) ? `<span class="delete-btn text-xs ml-2" onclick="deleteChat('${m.id}')">[X]</span>` : ''}
-                         </p>
-                     </div>
-                 </div>
-             `;
-             
-             div.innerHTML = messageContent;
-             container.appendChild(div);
-             container.scrollTop = container.scrollHeight;
-        }
-
-        async function loadChat() {
-            const { data: messages } = await supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(50);
-            const container = document.getElementById('chat-messages');
-            container.innerHTML = '';
-            
-            const userIds = [...new Set(messages.map(m => m.user_id))];
-            await Promise.all(userIds.map(id => getProfileInfo(id)));
-            
-            messages.forEach(m => appendChatMessage(m));
-        }
-        
-        // CORRECCIÓN V13.3: Muestra el contador de comentarios y el avatar
-        async function loadComments(postId) {
-            const { data: comments, count } = await supabase.from('comments').select('*', { count: 'exact' }).eq('post_id', postId).order('created_at', { ascending: true });
-            const list = document.getElementById(`comment-list-${postId}`);
-            const button = document.getElementById(`comment-btn-${postId}`);
-
-            if (button) { // Actualiza el contador en el botón
-                 button.textContent = `Comments (${count || 0})`;
-            }
-
-            if (list) {
-                 const userIds = [...new Set(comments.map(c => c.user_id))];
-                 await Promise.all(userIds.map(id => getProfileInfo(id)));
-                 
-                 // Limpia y vuelve a cargar
-                 list.innerHTML = comments.map(c => {
-                    const profile = profilesCache[c.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-                    
-                    return `
-                        <div class="flex items-start mt-2">
-                             ${renderAvatarHTML(profile, 'w-6 h-6')}
-                             <p class="text-sm ml-2"><strong>${profile.name}:</strong> ${c.text}</p>
-                        </div>
-                    `;
-                 }).join('');
+                document.getElementById('splash').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
             }
         }
-        
-        function checkNotifications() {
-             const hasNewNotification = localStorage.getItem('hasNewComment') === 'true' || localStorage.getItem('hasNewLike') === 'true';
-             
-             if (hasNewNotification) {
-                 document.getElementById('feed-notification-dot').style.display = 'block';
-             } else {
-                 document.getElementById('feed-notification-dot').style.display = 'none';
-             }
-        }
-        
-        function setupRealtime() {
-            // Notificación para comentarios
-            supabase.channel('comments_channel')
-                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
-                    supabase.from('posts').select('user_id').eq('id', payload.new.post_id).single()
-                          .then(({ data }) => {
-                              if (data && data.user_id === USER_ID && payload.new.user_id !== USER_ID) {
-                                   localStorage.setItem('hasNewComment', 'true');
-                                   checkNotifications();
-                              }
-                          });
-                     loadComments(payload.new.post_id); // FIX V13.3: Asegura que el contador se actualice
-                 })
-                 .subscribe();
 
-            // Notificación para Likes
-            supabase.channel('likes_channel')
-                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, (payload) => {
-                    supabase.from('posts').select('user_id').eq('id', payload.new.post_id).single()
-                          .then(({ data }) => {
-                              // ECON-1: Si mi post recibió un like, recargo mi perfil para el contador de tokens
-                              if (data && data.user_id === USER_ID) {
-                                   loadProfile(); 
-                              }
-                              // Si el post es tuyo y no te lo diste tú mismo
-                              if (data && data.user_id === USER_ID && payload.new.user_id !== USER_ID) {
-                                   localStorage.setItem('hasNewLike', 'true');
-                                   checkNotifications();
-                              }
-                          });
-                     loadFeed(); // Refresca el feed para actualizar el contador de likes.
-                 })
-                 .subscribe();
+        async function loadUserProfile(userId) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select(`name, tokens, is_admin, avatar_url, gear_id, gear(id, name, image_url)`)
+                .eq('id', userId)
+                .single();
 
-            // Mensajes de chat
-            supabase.channel('chat_channel')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
-                    getProfileInfo(payload.new.user_id).then(profile => {
-                        const messageWithProfile = { ...payload.new, name: profile.name, avatar: profile.avatar };
-                        appendChatMessage(messageWithProfile);
-                    });
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' }, () => loadChat())
-                .subscribe();
-
-            // Actualización general de Feed/Cámaras/Likes/Perfil
-            supabase.channel('feed_channel')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' }, () => loadFeed()) // Actualiza por si cambian los likes
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, () => loadFeed()) // Actualiza por si se borra un post
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'cameras' }, () => loadCameras())
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
-                    if (payload.new.user_id === USER_ID) {
-                        profilesCache = {}; 
-                        loadProfile();
-                    }
-                    if (currentTab === 'user-profile-view' && targetUserId) {
-                         viewUserProfile(targetUserId); 
-                    }
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'followers' }, () => {
-                     // Corregido: Limpiar cache y recargar perfil si estamos viendo la vista de perfil
-                     profilesCache = {}; 
-                     if (currentTab === 'user-profile-view' && targetUserId) {
-                          viewUserProfile(targetUserId); 
-                     }
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'blocked_users' }, () => {
-                     if (currentTab === 'user-profile-view' && targetUserId) {
-                          viewUserProfile(targetUserId);
-                     }
-                })
-                .subscribe();
+            if (data) {
+                USER_NAME = data.name;
+                USER_TOKENS = data.tokens;
+                IS_ADMIN = data.is_admin;
+                USER_AVATAR = data.avatar_url || USER_AVATAR;
+                USER_GEAR_ID = data.gear_id;
+                USER_GEAR_URL = data.gear ? data.gear.image_url : null;
                 
-            checkNotifications(); 
+                // Actualizar UI del Perfil
+                document.getElementById('profile-name').textContent = USER_NAME;
+                document.getElementById('user-tokens').textContent = USER_TOKENS;
+                document.getElementById('profile-picture').src = USER_AVATAR;
+                document.getElementById('user-role').textContent = IS_ADMIN ? 'Gerente General' : 'Guardia Nocturno';
+
+                // Aplicar Gear (Accesorios)
+                const gearSlot = document.getElementById('gear-slot');
+                gearSlot.innerHTML = '';
+                if (USER_GEAR_URL) {
+                     gearSlot.style.backgroundImage = `url('${USER_GEAR_URL}')`;
+                     gearSlot.style.backgroundSize = 'contain';
+                     gearSlot.style.backgroundRepeat = 'no-repeat';
+                     gearSlot.style.backgroundPosition = 'center';
+                }
+            } else {
+                console.error("Error cargando perfil:", error);
+            }
         }
-        
-        function toggleComments(postId) {
-             const commentsDiv = document.getElementById(`comments-${postId}`);
-             if (commentsDiv) {
-                 commentsDiv.classList.toggle('hidden');
-                 if (!commentsDiv.classList.contains('hidden')) {
-                      // Asegurarse de que los comentarios estén cargados al abrir
-                      loadComments(postId);
-                 }
-             }
+
+        async function signInUser() {
+            const email = `${document.getElementById('auth-username').value.trim().toLowerCase()}@fazbear.com`;
+            const password = document.getElementById('auth-password').value;
+
+            if (!email || !password) return alert('Por favor, ingresa Nombre y Contraseña.');
+
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                alert(`Error al iniciar sesión: ${error.message}.`);
+            } else {
+                window.location.reload(); 
+            }
         }
+
+        async function signUpUser() {
+            const username = document.getElementById('auth-username').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const email = `${username.toLowerCase()}@fazbear.com`;
+
+            if (username.length < 3 || password.length < 6) return alert('Nombre debe tener 3+ caracteres, Contraseña 6+.');
+
+            const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+
+            if (authError) {
+                 alert(`Error al registrar: ${authError.message}.`);
+                 return;
+            }
+
+            // Crear perfil del usuario
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert([{ id: authData.user.id, name: username, email: email }]);
+            
+            if (profileError) {
+                 await supabase.auth.admin.deleteUser(authData.user.id); // Revertir registro
+                 alert(`Error al crear perfil. Intenta de nuevo. Detalles: ${profileError.message}`);
+                 return;
+            }
+
+            alert('Guardia registrado. ¡Inicia sesión!');
+            document.getElementById('auth-password').value = '';
+            // No recargar, dejar que inicie sesión
+        }
+
+        async function signOutUser() {
+            const { error } = await supabase.auth.signOut();
+            if (error) console.error(error);
+            window.location.reload(); 
+        }
+
+        // --- NAVIGATION AND UI FUNCTIONS ---
+
+        function showSection(sectionId) {
+            const sections = ['feed-section', 'profile-section', 'chat-section', 'shop-section', 'cameras-section', 'auth-section'];
+            sections.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                document.getElementById(id).classList.remove('flex');
+            });
+            document.getElementById(`${sectionId}-section`).classList.remove('hidden');
+            document.getElementById(`${sectionId}-section`).classList.add('flex');
+            
+            if (sectionId === 'profile') loadMyPosts();
+            if (sectionId === 'chat') loadChat();
+            if (sectionId === 'shop') loadShop();
+            if (sectionId === 'cameras') loadCameras(false);
+        }
+
+        function showPostModal() {
+            document.getElementById('post-modal').classList.remove('hidden');
+            document.getElementById('post-modal').classList.add('flex');
+        }
+
+        function hidePostModal() {
+            document.getElementById('post-modal').classList.add('hidden');
+            document.getElementById('post-modal').classList.remove('flex');
+            document.getElementById('post-content').value = '';
+            document.getElementById('post-image').value = '';
+        }
+
+        function showCommentsModal(postId) {
+            COMMENT_POST_ID = postId;
+            loadComments(postId);
+            document.getElementById('comments-modal').classList.remove('hidden');
+            document.getElementById('comments-modal').classList.add('flex');
+        }
+
+        function hideCommentsModal() {
+            document.getElementById('comments-modal').classList.add('hidden');
+            document.getElementById('comments-modal').classList.remove('flex');
+            COMMENT_POST_ID = null;
+        }
+
+
+        // --- FEED AND POSTS FUNCTIONS ---
 
         async function submitPost() {
-             const content = document.getElementById('post-content').value.trim();
-             const fileInput = document.getElementById('post-file');
-             const file = fileInput.files[0];
-             const submitBtn = document.getElementById('submit-post-btn');
-             const isCameraPost = document.getElementById('modal-title').textContent.includes('GRABACIÓN');
-             const bucket = isCameraPost ? 'camera_videos' : 'post_images';
-             const table = isCameraPost ? 'cameras' : 'posts';
+            const content = document.getElementById('post-content').value.trim();
+            const imageUrl = document.getElementById('post-image').value.trim();
 
-             if (!content && !file) {
-                 alert('Debes escribir contenido o subir un archivo.');
-                 return;
-             }
+            if (!content) return alert('La teoría no puede estar vacía.');
+            if (USER_ID === null) return alert('Debes iniciar sesión para publicar.');
 
-             if (file && file.size > MAX_FILE_SIZE) {
-                 alert(`El archivo es muy grande. El límite es de ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
-                 return;
-             }
-             
-             submitBtn.textContent = 'SUBIENDO...';
-             submitBtn.disabled = true;
+            const { error } = await supabase
+                .from('posts')
+                .insert([{ 
+                    user_id: USER_ID, 
+                    content: content, 
+                    image_url: imageUrl || null,
+                    user_name: USER_NAME,
+                    user_avatar: USER_AVATAR
+                }]);
 
-             const profile = await getProfileInfo(USER_ID);
-             let fileUrl = null;
-
-             if (file) {
-                 fileUrl = await uploadFile(file, bucket);
-                 if (!fileUrl) {
-                     submitBtn.textContent = 'PUBLICAR';
-                     submitBtn.disabled = false;
-                     return;
-                 }
-             }
-
-             const postData = {
-                 user_id: USER_ID,
-                 name: profile.name,
-                 avatar: profile.avatar,
-                 content: content,
-                 likes: 0
-             };
-
-             if (isCameraPost) {
-                 postData.video = fileUrl;
-             } else {
-                 postData.image = fileUrl;
-             }
-
-             const { error } = await supabase.from(table).insert(postData);
-
-             if (error) {
-                 console.error('Error al publicar:', error);
-                 alert('Error al publicar en Supabase.');
-             }
-
-             closePostModal();
-             submitBtn.textContent = 'PUBLICAR';
-             submitBtn.disabled = false;
-             if (table === 'posts') {
-                 loadFeed(true);
-             } else {
-                 loadCameras(true);
-             }
+            if (error) {
+                console.error(error);
+                alert('Error al publicar la teoría.');
+            } else {
+                hidePostModal();
+                loadFeed(true);
+            }
         }
-        
+
+        async function loadFeed(refresh = false) {
+            if (!document.getElementById('feed-section').classList.contains('flex') && !refresh) return;
+
+            const { data: posts, error } = await supabase
+                .from('posts')
+                .select(`
+                    id, content, created_at, user_name, user_avatar, image_url, likes, 
+                    comments_count, user_id, 
+                    comments(id)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error cargando feed:', error);
+                return;
+            }
+
+            const container = document.getElementById('feed-container');
+            // Si la búsqueda está activa, no sobreescribir el feed.
+            if (!document.getElementById('search-results-container').classList.contains('flex') || refresh) {
+                 container.innerHTML = ''; 
+            }
+
+            posts.forEach(post => {
+                // Actualizar el contador de comentarios con el conteo de la relación
+                const commentCount = post.comments ? post.comments.length : 0;
+                
+                const postElement = document.createElement('div');
+                postElement.className = 'bg-gray-700 p-4 rounded-lg border border-yellow-500 hover:border-yellow-300 transition duration-150';
+                postElement.innerHTML = `
+                    <div class="flex items-center mb-3">
+                        <img src="${post.user_avatar}" class="w-10 h-10 rounded-full mr-3 object-cover border border-yellow-500" alt="Avatar">
+                        <span class="text-xl text-yellow-400 font-bold">${post.user_name}</span>
+                        <span class="ml-auto text-sm text-gray-400">${new Date(post.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-lg mb-3">${post.content}</p>
+                    ${post.image_url ? `<img src="${post.image_url}" class="w-full h-auto max-h-64 object-cover rounded mb-3" alt="Post Image">` : ''}
+                    <div class="flex space-x-4 text-sm mt-3 border-t border-gray-600 pt-3">
+                        <button onclick="likePost('${post.id}')" class="flex items-center text-red-400 hover:text-red-500 transition duration-150">
+                            🍕 ${post.likes || 0} Pizza Slices
+                        </button>
+                        <button onclick="showCommentsModal('${post.id}')" class="flex items-center text-blue-400 hover:text-blue-500 transition duration-150">
+                            🎤 <span id="comments-count-${post.id}">${commentCount}</span> Comentarios
+                        </button>
+                        ${(post.user_id === USER_ID || IS_ADMIN) ? 
+                            `<button onclick="deletePost('${post.id}', 'posts')" class="ml-auto text-red-600 hover:text-red-400 transition duration-150">🗑️ Borrar</button>` : ''}
+                    </div>
+                `;
+                container.prepend(postElement); 
+            });
+        }
+
+        async function loadMyPosts() {
+            if (!USER_ID) return;
+
+             const { data: posts, error } = await supabase
+                .from('posts')
+                .select(`id, content, created_at, likes, comments_count, user_id, comments(id)`)
+                .eq('user_id', USER_ID)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error cargando mis posts:', error);
+                return;
+            }
+
+            const container = document.getElementById('my-posts-container');
+            container.innerHTML = '';
+            
+            // Actualizar detalles del perfil
+            document.getElementById('p-name').textContent = USER_NAME;
+            document.getElementById('p-role').textContent = IS_ADMIN ? 'Gerente General' : 'Guardia Nocturno';
+            document.getElementById('p-tokens').textContent = USER_TOKENS;
+
+            const { data: profile } = await supabase.from('profiles').select('gear(name)').eq('id', USER_ID).single();
+            document.getElementById('p-gear').textContent = profile && profile.gear ? profile.gear.name : 'Ninguno';
+
+
+            posts.forEach(post => {
+                const postElement = document.createElement('div');
+                postElement.className = 'bg-gray-700 p-4 rounded-lg border border-yellow-500';
+                 postElement.innerHTML = `
+                    <p class="text-lg mb-3">${post.content}</p>
+                    <div class="flex space-x-4 text-sm mt-3 border-t border-gray-600 pt-3">
+                        <span class="flex items-center text-red-400">🍕 ${post.likes || 0} Pizza Slices</span>
+                        <span class="flex items-center text-blue-400">🎤 ${post.comments ? post.comments.length : 0} Comentarios</span>
+                        <button onclick="deletePost('${post.id}', 'posts')" class="ml-auto text-red-600 hover:text-red-400 transition duration-150">🗑️ Borrar</button>
+                    </div>
+                `;
+                container.appendChild(postElement);
+            });
+        }
+
+        async function likePost(postId) {
+            // Lógica de likes pendiente, por ahora solo simula el conteo en el front-end
+            alert('Función de Pizza Slices pendiente de implementar.');
+        }
+
         async function deletePost(postId, table) {
-             if (confirm(`¿Estás seguro de que quieres BORRAR este elemento de ${table}?`)) {
+             if (confirm(`¿Estás seguro de que quieres BORRAR este elemento?`)) {
                  const { error } = await supabase.from(table).delete().eq('id', postId).eq('user_id', USER_ID);
                  if (error && error.code === '42501' && !IS_ADMIN) { 
                      alert('No tienes permiso para borrar publicaciones de otros guardias.');
@@ -1595,17 +478,176 @@
                      alert('Error al borrar la publicación.');
                  } else {
                      alert('Elemento borrado.');
-                     if (table === 'posts') loadFeed(true);
+                     if (table === 'posts') { 
+                         loadFeed(true); 
+                         if(document.getElementById('profile-section').classList.contains('flex')) loadMyPosts();
+                     }
                      if (table === 'cameras') loadCameras(true);
                  }
              }
         }
+        
+        // --- COMMENTS FUNCTIONS (FIXED v13.5) ---
 
+        async function loadComments(postId) {
+            const { data: comments, error } = await supabase
+                .from('comments')
+                .select(`id, content, created_at, user_name, user_avatar, user_id`)
+                .eq('post_id', postId)
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('Error cargando comentarios:', error);
+                return;
+            }
+
+            const container = document.getElementById('comments-list');
+            container.innerHTML = '';
+
+            comments.forEach(comment => {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'p-3 bg-gray-600 rounded-lg border border-gray-500';
+                commentElement.innerHTML = `
+                    <div class="flex items-center mb-1">
+                        <img src="${comment.user_avatar}" class="w-6 h-6 rounded-full mr-2 object-cover border border-yellow-500" alt="Avatar">
+                        <span class="text-md text-yellow-400 font-bold">${comment.user_name}</span>
+                        <span class="ml-auto text-xs text-gray-400">${new Date(comment.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-sm">${comment.content}</p>
+                    ${(comment.user_id === USER_ID || IS_ADMIN) ? 
+                        `<button onclick="deleteComment('${comment.id}', '${comment.post_id}')" class="mt-1 text-xs text-red-400 hover:text-red-500">🗑️ Borrar</button>` : ''}
+                `;
+                container.appendChild(commentElement);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function addComment(postId) {
+            const input = document.getElementById('comment-input');
+            const content = input.value.trim();
+
+            if (!content) return alert('El comentario no puede estar vacío.');
+
+            const { error } = await supabase
+                .from('comments')
+                .insert([{ 
+                    post_id: postId, 
+                    user_id: USER_ID, 
+                    content: content, 
+                    user_name: USER_NAME,
+                    user_avatar: USER_AVATAR
+                }]);
+
+            if (error) {
+                console.error('Error al comentar:', error);
+                alert('Error al enviar el comentario.');
+            } else {
+                input.value = '';
+                
+                // Actualizar contador en la UI del modal
+                await loadComments(postId); 
+
+                // Forzar actualización del contador del post en el Feed
+                const countElement = document.getElementById(`comments-count-${postId}`);
+                if (countElement) {
+                    const newCount = parseInt(countElement.textContent) + 1;
+                    countElement.textContent = newCount;
+                }
+            }
+        }
+        
+        async function deleteComment(commentId, postId) {
+            if (!confirm('¿Borrar este comentario?')) return;
+            
+             const { error } = await supabase.from('comments').delete().eq('id', commentId).eq('user_id', USER_ID);
+             if (error && error.code === '42501' && !IS_ADMIN) {
+                 alert('No tienes permiso para borrar este comentario.');
+             } else if (error) {
+                 console.error(error);
+                 alert('Error al borrar el comentario.');
+             } else {
+                 await loadComments(postId); // Recargar comentarios
+                 
+                 // Actualizar el contador del post en el Feed
+                 const countElement = document.getElementById(`comments-count-${postId}`);
+                 if (countElement) {
+                     const newCount = parseInt(countElement.textContent) - 1;
+                     countElement.textContent = newCount;
+                 }
+             }
+        }
+
+
+        // --- CHAT FUNCTIONS ---
+
+        async function loadChat() {
+            if (!document.getElementById('chat-section').classList.contains('flex')) return;
+
+            const { data: messages, error } = await supabase
+                .from('chat_messages')
+                .select(`id, content, created_at, user_name, user_id, user_avatar`)
+                .order('created_at', { ascending: true })
+                .limit(50);
+
+            if (error) {
+                console.error('Error cargando chat:', error);
+                return;
+            }
+
+            const chatContainer = document.getElementById('chat-messages');
+            const shouldScroll = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 50; 
+            
+            chatContainer.innerHTML = '';
+
+            messages.forEach(msg => {
+                const messageElement = document.createElement('div');
+                const isOwn = msg.user_id === USER_ID;
+                messageElement.className = `chat-message p-2 rounded-lg max-w-xs ${isOwn ? 'own' : 'other'}`;
+                messageElement.innerHTML = `
+                    <div class="flex items-center mb-1 ${isOwn ? 'justify-end' : 'justify-start'}">
+                        <img src="${msg.user_avatar}" class="w-6 h-6 rounded-full ${isOwn ? 'ml-2' : 'mr-2'} object-cover border border-gray-500" alt="Avatar">
+                        <span class="text-xs font-bold ${isOwn ? 'text-yellow-400' : 'text-green-400'}">${msg.user_name}</span>
+                        <span class="text-xs text-gray-400 ${isOwn ? 'ml-2' : 'mr-2'}">${new Date(msg.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-sm">${msg.content}</p>
+                    ${(isOwn || IS_ADMIN) ? 
+                        `<button onclick="deleteChat('${msg.id}')" class="mt-1 text-xs text-red-400 hover:text-red-500 ${isOwn ? 'block text-right' : 'block text-left'}">🗑️ Borrar</button>` : ''}
+                `;
+                chatContainer.appendChild(messageElement);
+            });
+
+            if (shouldScroll) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            const { error } = await supabase
+                .from('chat_messages')
+                .insert([{ 
+                    user_id: USER_ID, 
+                    content: content, 
+                    user_name: USER_NAME,
+                    user_avatar: USER_AVATAR
+                }]);
+
+            if (error) {
+                console.error(error);
+                alert('Error al enviar mensaje.');
+            } else {
+                input.value = '';
+                loadChat(); 
+            }
+        }
+        
         async function deleteChat(chatId) {
              if (confirm('¿Borrar este mensaje?')) {
-                 // Permitir el borrado si eres el admin o el user_id coincide.
-                 const { error } = await supabase.from('chat_messages').delete().eq('id', chatId).or(`user_id.eq.${USER_ID},id.eq.${chatId}`); 
-
+                 const { error } = await supabase.from('chat_messages').delete().eq('id', chatId).eq('user_id', USER_ID);
                  if (error && error.code === '42501' && !IS_ADMIN) {
                       alert('No tienes permiso para borrar mensajes de otros.');
                  } else if (error) {
@@ -1616,7 +658,361 @@
                  }
              }
         }
+
+        // --- SHOP FUNCTIONS (FIXED v13.5) ---
+
+        async function loadShop() {
+            if (!document.getElementById('shop-section').classList.contains('flex')) return;
+
+            const { data: gears, error: gearError } = await supabase
+                .from('gear')
+                .select('*');
+
+            const { data: ownedGears, error: ownedError } = await supabase
+                .from('owned_gear')
+                .select('gear_id')
+                .eq('user_id', USER_ID);
+
+            if (gearError || ownedError) {
+                console.error('Error cargando tienda/inventario:', gearError || ownedError);
+                return;
+            }
+
+            const ownedIds = new Set(ownedGears.map(og => og.gear_id));
+            const shopContainer = document.getElementById('shop-container');
+            shopContainer.innerHTML = '';
+
+            gears.forEach(gear => {
+                const isOwned = ownedIds.has(gear.id);
+                const isEquipped = gear.id === USER_GEAR_ID;
+                
+                let buttonText;
+                let buttonClass;
+                let action;
+
+                if (isEquipped) {
+                    buttonText = 'EQUIPADO';
+                    buttonClass = 'bg-green-500 hover:bg-green-400';
+                    action = `buyGear('${gear.id}', true, true)`; // true para isEquipped
+                } else if (isOwned) {
+                    buttonText = 'Equipar';
+                    buttonClass = 'bg-blue-600 hover:bg-blue-500';
+                    action = `buyGear('${gear.id}', true, false)`; // true para isOwned, false para isEquipped
+                } else {
+                    buttonText = `Comprar (${gear.price} $)`; // Usamos $ como símbolo de Token
+                    buttonClass = 'bg-yellow-600 hover:bg-yellow-500';
+                    action = `buyGear('${gear.id}', false, false, ${gear.price})`; // false para isOwned/isEquipped
+                }
+                
+                const gearElement = document.createElement('div');
+                gearElement.className = `gear-card p-3 bg-gray-700 rounded-lg text-center ${isEquipped ? 'equipped' : 'border border-gray-600'}`;
+                gearElement.innerHTML = `
+                    <img src="${gear.image_url}" class="w-full h-24 object-contain mx-auto mb-2" alt="${gear.name}">
+                    <div class="text-xl text-yellow-400 font-bold mb-1">${gear.name}</div>
+                    <p class="text-sm mb-3">${gear.description}</p>
+                    <button onclick="${action}" class="w-full py-2 ${buttonClass} rounded text-black font-bold transition duration-150 text-sm">
+                        ${buttonText}
+                    </button>
+                `;
+                shopContainer.appendChild(gearElement);
+            });
+            
+            // Si el usuario tiene gear equipado, agregar un botón para "Desequipar"
+            if(USER_GEAR_ID) {
+                 const desequipElement = document.createElement('div');
+                 desequipElement.className = `p-3 bg-gray-700 rounded-lg text-center border border-red-500`;
+                 desequipElement.innerHTML = `
+                    <div class="text-xl text-red-400 font-bold mb-1">Slot de Gear</div>
+                    <p class="text-sm mb-3">Quitar accesorio de tu avatar.</p>
+                    <button onclick="unequipGear()" class="w-full py-2 bg-red-600 hover:bg-red-500 rounded text-black font-bold transition duration-150 text-sm">
+                        Desequipar Todo
+                    </button>
+                 `;
+                 shopContainer.prepend(desequipElement);
+            }
+        }
+
+        async function buyGear(gearId, isOwned, isEquipped, price = 0) {
+            
+            // 1. Desequipar
+            if (isEquipped) {
+                await unequipGear();
+                return;
+            }
+
+            // 2. Equipar (Ya es dueño, pero no equipado)
+            if (isOwned && !isEquipped) {
+                await equipGear(gearId);
+                return;
+            }
+
+            // 3. Comprar (No es dueño)
+            if (!isOwned) {
+                 if (USER_TOKENS < price) return alert(`Necesitas ${price} Tokens. Solo tienes ${USER_TOKENS}.`);
+
+                if (!confirm(`¿Confirmar compra de este ítem por ${price} Tokens?`)) return;
+
+                // Transacción: Insertar owned_gear y actualizar tokens
+                const { error: insertError } = await supabase
+                    .from('owned_gear')
+                    .insert([{ user_id: USER_ID, gear_id: gearId }]);
+                
+                if (insertError) {
+                    if (insertError.code === '23505') { // Ya tiene el item
+                        alert('Ya tienes este ítem. Solo necesitas equiparlo.');
+                        await equipGear(gearId); // Equipar si ya lo tiene
+                    } else {
+                        console.error('Error comprando:', insertError);
+                        alert('Error al completar la compra.');
+                    }
+                    return;
+                }
+
+                const newTokens = USER_TOKENS - price;
+                const { error: tokenError } = await supabase
+                    .from('profiles')
+                    .update({ tokens: newTokens, gear_id: gearId }) // Equipar automáticamente
+                    .eq('id', USER_ID);
+
+                if (tokenError) {
+                    console.error('Error actualizando tokens:', tokenError);
+                    alert('Compra exitosa, pero error al actualizar tokens/equipo. Recarga la página.');
+                    return;
+                }
+                
+                USER_TOKENS = newTokens;
+                document.getElementById('user-tokens').textContent = USER_TOKENS;
+                alert('¡Compra exitosa! Ítem equipado automáticamente.');
+                await loadUserProfile(USER_ID); // Forzar recarga del avatar
+                loadShop(); // Recargar la tienda para ver el estado
+            }
+        }
         
+        async function equipGear(gearId) {
+            const { error } = await supabase
+                 .from('profiles')
+                 .update({ gear_id: gearId })
+                 .eq('id', USER_ID);
+
+            if (error) {
+                console.error('Error equipando:', error);
+                alert('Error al equipar el ítem.');
+                return;
+            }
+            alert('¡Ítem equipado!');
+            await loadUserProfile(USER_ID);
+            loadShop();
+        }
+        
+        async function unequipGear() {
+             const { error } = await supabase
+                 .from('profiles')
+                 .update({ gear_id: null })
+                 .eq('id', USER_ID);
+
+            if (error) {
+                console.error('Error desequipando:', error);
+                alert('Error al desequipar el ítem.');
+                return;
+            }
+            alert('Ítem desequipado.');
+            await loadUserProfile(USER_ID);
+            loadShop();
+        }
+
+        // --- SEARCH FUNCTIONS (NEW v13.5) ---
+        
+        async function handleSearch() {
+            const query = document.getElementById('search-input').value.trim();
+            const resultsContainer = document.getElementById('search-results-container');
+            const userResultsDiv = document.getElementById('user-results');
+            const postResultsDiv = document.getElementById('post-results');
+
+            if (query.length < 2) {
+                resultsContainer.classList.add('hidden');
+                loadFeed(true); // Recargar feed completo si se borra la búsqueda
+                return;
+            }
+
+            userResultsDiv.innerHTML = '<h4 class="text-lg text-blue-400 mb-1">Usuarios Encontrados:</h4>';
+            postResultsDiv.innerHTML = '<h4 class="text-lg text-blue-400 mb-1">Teorías Encontradas:</h4>';
+            resultsContainer.classList.remove('hidden');
+
+            // 1. Buscar Usuarios (profiles)
+            const { data: users, error: userError } = await supabase
+                .from('profiles')
+                .select(`id, name, avatar_url`)
+                .ilike('name', `%${query}%`);
+
+            if (userError) console.error('Error buscando usuarios:', userError);
+
+            if (users && users.length > 0) {
+                users.forEach(user => {
+                    const userLink = document.createElement('div');
+                    userLink.className = 'flex items-center p-1 bg-gray-600 rounded mb-1 hover:bg-gray-500 cursor-pointer';
+                    userLink.innerHTML = `
+                        <img src="${user.avatar_url}" class="w-6 h-6 rounded-full mr-2 object-cover" alt="Avatar">
+                        <span class="text-md text-yellow-300">${user.name}</span>
+                    `;
+                    // NOTA: Por ahora, solo muestra el resultado.
+                    userResultsDiv.appendChild(userLink);
+                });
+            } else {
+                 userResultsDiv.innerHTML += '<p class="text-sm text-gray-400">Ningún usuario encontrado.</p>';
+            }
+
+            // 2. Buscar Publicaciones (posts)
+            const { data: posts, error: postError } = await supabase
+                .from('posts')
+                .select(`id, content, user_name, created_at, likes, comments_count`)
+                .ilike('content', `%${query}%`)
+                .order('created_at', { ascending: false });
+
+            if (postError) console.error('Error buscando publicaciones:', postError);
+
+            if (posts && posts.length > 0) {
+                 posts.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.className = 'bg-gray-700 p-2 rounded-lg border border-gray-600 mb-2';
+                    postElement.innerHTML = `
+                        <div class="text-yellow-400 font-bold">${post.user_name}</div>
+                        <p class="text-sm line-clamp-2">${post.content}</p>
+                        <div class="flex text-xs text-gray-400 space-x-2">
+                             <span>🍕 ${post.likes || 0}</span>
+                             <span>🎤 ${post.comments_count || 0}</span>
+                             <button onclick="showCommentsModal('${post.id}')" class="ml-auto text-blue-400 hover:text-blue-300">Ver</button>
+                        </div>
+                    `;
+                    postResultsDiv.appendChild(postElement);
+                 });
+            } else {
+                 postResultsDiv.innerHTML += '<p class="text-sm text-gray-400">Ninguna teoría encontrada.</p>';
+            }
+            
+            // Ocultar el feed principal para mostrar solo los resultados
+            document.getElementById('feed-container').innerHTML = '';
+        }
+
+
+        // --- CAMERAS AND ALERTS FUNCTIONS ---
+
+        async function loadCameras(initial = false) {
+             
+             if (!document.getElementById('cameras-section').classList.contains('flex') && !initial) return;
+             
+             const { data: alerts, error } = await supabase
+                .from('cameras')
+                .select(`id, camera_name, alert_content, created_at, user_name`)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (error) {
+                console.error('Error cargando alertas:', error);
+                return;
+            }
+
+            const alertsContainer = document.getElementById('camera-alerts-container');
+            alertsContainer.innerHTML = '';
+            
+            alerts.forEach(alert => {
+                const alertElement = document.createElement('div');
+                alertElement.className = `p-2 rounded-lg ${alert.camera_name === CURRENT_CAMERA ? 'bg-red-900 border border-red-500' : 'bg-gray-700 border border-gray-600'}`;
+                 alertElement.innerHTML = `
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-red-400">${alert.camera_name}</span>
+                        <span class="text-xs text-gray-400">${new Date(alert.created_at).toLocaleTimeString()} - ${alert.user_name}</span>
+                        ${(alert.user_name === USER_NAME || IS_ADMIN) ? 
+                            `<button onclick="deletePost('${alert.id}', 'cameras')" class="text-red-600 hover:text-red-400 transition duration-150">🗑️</button>` : ''}
+                    </div>
+                    <p class="text-sm mt-1">${alert.alert_content}</p>
+                `;
+                alertsContainer.appendChild(alertElement);
+            });
+            
+            // Inicialización de mapa/cámaras
+            if(initial) {
+                const mapContainer = document.getElementById('map-container');
+                mapContainer.innerHTML = `<img src="https://i.imgur.com/K3pW11O.png" alt="Mapa de Pizzería" class="w-full h-full object-cover">`;
+                
+                // Definiciones de cámaras (posición en el mapa)
+                const cameras = [
+                    { id: 'CAM 01', left: '10%', top: '20%', img: 'https://i.imgur.com/k2j4M3V.png' }, // Sala principal
+                    { id: 'CAM 02', left: '40%', top: '10%', img: 'https://i.imgur.com/z4X6H2x.png' }, // Escenario
+                    { id: 'CAM 03', left: '80%', top: '30%', img: 'https://i.imgur.com/7b0tD7J.png' }, // Cocina
+                    { id: 'CAM 04', left: '20%', top: '70%', img: 'https://i.imgur.com/mC2W0qL.png' }, // Backstage
+                    { id: 'CAM 05', left: '70%', top: '80%', img: 'https://i.imgur.com/vH4v9Z0.png' }  // Pirate Cove
+                ];
+
+                cameras.forEach(cam => {
+                    const dot = document.createElement('div');
+                    dot.className = `absolute w-4 h-4 rounded-full bg-yellow-500 border-2 border-black cursor-pointer hover:bg-red-500 transition duration-150`;
+                    dot.style.left = cam.left;
+                    dot.style.top = cam.top;
+                    dot.setAttribute('title', cam.id);
+                    dot.onclick = () => viewCamera(cam.id, cam.img);
+                    mapContainer.appendChild(dot);
+                });
+                
+                viewCamera('CAM 01', 'https://i.imgur.com/k2j4M3V.png'); // Carga la primera cámara
+            }
+        }
+
+        function viewCamera(cameraId, imageUrl) {
+            CURRENT_CAMERA = cameraId;
+            document.getElementById('cam-name').textContent = cameraId;
+            document.getElementById('current-camera-image').src = imageUrl;
+            
+            // Resaltar el nombre de la cámara en el panel de alertas
+            loadCameras(false); 
+        }
+        
+        async function sendCameraAlert() {
+            const input = document.getElementById('camera-alert-input');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            const { error } = await supabase
+                .from('cameras')
+                .insert([{ 
+                    user_id: USER_ID, 
+                    camera_name: CURRENT_CAMERA,
+                    alert_content: content,
+                    user_name: USER_NAME
+                }]);
+
+            if (error) {
+                console.error(error);
+                alert('Error al enviar la alerta.');
+            } else {
+                input.value = '';
+                loadCameras(false); 
+            }
+        }
+
+
+        // --- REALTIME SUBSCRIPTION (CHAT) ---
+        function setupRealtime() {
+            supabase.channel('public:chat_messages')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => {
+                    if (document.getElementById('chat-section').classList.contains('flex')) {
+                       loadChat();
+                    }
+                })
+                .subscribe();
+
+            // Realtime para posts
+             supabase.channel('public:posts')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, () => {
+                    if (document.getElementById('feed-section').classList.contains('flex')) {
+                       loadFeed(true);
+                    }
+                })
+                .subscribe();
+        }
+
+        // Initialize the app when the DOM is ready
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
