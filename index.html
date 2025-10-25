@@ -650,90 +650,161 @@
             if (tab === 'shop') { 
                  loadShop();
             }
-            if (tab === 'map') { // UX-2: Cargar el mapa al cambiar de pestaña
-                 loadMap(false);
+            if (tab === 'map') { 
+                 loadMap(false); 
             }
-            if (tab === 'chat') {
-                 // Forzar el scroll hasta abajo al abrir el chat
+            if (tab === 'chat') { 
                  const chatMessages = document.getElementById('chat-messages');
-                 setTimeout(() => {
-                      chatMessages.scrollTop = chatMessages.scrollHeight;
+                 setTimeout(() => { 
+                     chatMessages.scrollTop = chatMessages.scrollHeight; 
                  }, 50);
             }
         }
 
         function openPostModal() {
-             document.getElementById('post-modal').classList.remove('hidden'); 
-             document.getElementById('post-content').value = '';
-             document.getElementById('post-file').value = ''; 
-             document.getElementById('submit-post-btn').textContent = 'PUBLICAR'; 
-             document.getElementById('submit-post-btn').disabled = false;
+            document.getElementById('post-modal').classList.remove('hidden');
+            document.getElementById('post-content').value = '';
+            document.getElementById('post-file').value = '';
+            document.getElementById('submit-post-btn').textContent = 'PUBLICAR';
+            document.getElementById('submit-post-btn').disabled = false;
 
-             if (currentTab === 'cameras') {
+            if (currentTab === 'cameras') {
                  document.getElementById('modal-title').textContent = 'NUEVA GRABACIÓN DE CÁMARA';
                  document.getElementById('file-label').textContent = 'Video (Máx 5MB)';
-                 document.getElementById('post-file').accept = 'video/mp4,video/quicktime'; 
+                 document.getElementById('post-file').accept = 'video/mp4,video/quicktime';
                  document.getElementById('video-warning').classList.remove('hidden');
                  document.getElementById('post-content').placeholder = 'Descripción del clip...';
-             } else {
+            } else {
                  document.getElementById('modal-title').textContent = 'NUEVA TEORÍA';
                  document.getElementById('file-label').textContent = 'Imagen (Máx 5MB)';
                  document.getElementById('post-file').accept = 'image/*';
                  document.getElementById('video-warning').classList.add('hidden');
                  document.getElementById('post-content').placeholder = 'Tu teoría...';
-             }
+            }
         }
-        function closePostModal() { 
-             document.getElementById('post-modal').classList.add('hidden'); 
-             document.getElementById('post-content').value = '';
-             document.getElementById('post-file').value = ''; 
+
+        function closePostModal() {
+            document.getElementById('post-modal').classList.add('hidden');
+            document.getElementById('post-content').value = '';
+            document.getElementById('post-file').value = '';
         }
 
         // === FUNCIONES DE AVATAR CON GEAR ===
         function renderAvatarHTML(profile, size = 'w-10 h-10') {
-             const profileAvatar = profile.avatar || DEFAULT_AVATAR;
-             const gearStyle = profile.gear_url ? `
+            const profileAvatar = profile.avatar || DEFAULT_AVATAR;
+            const gearStyle = profile.gear_url ? `
                  <img src="${profile.gear_url}" class="avatar-gear">
-             ` : '';
-             
-             return `
+            ` : '';
+            
+            return `
                  <div class="avatar-container ${size} flex-shrink-0">
                      <img src="${profileAvatar}" class="avatar-base">
                      ${gearStyle}
                  </div>
-             `;
+            `;
         }
 
         async function getProfileInfo(userId) {
             if (profilesCache[userId]) return profilesCache[userId];
 
-            const { data: profileData } = await supabase.from('profiles').select('*, faz_tokens, gear_url').eq('user_id', userId).single();
+            const { data: profileData } = await supabase.from('profiles').select('*, faz_tokens, gear_url, gear_id').eq('user_id', userId).single();
             const { count: followersCount } = await supabase.from('followers').select('*', { count: 'exact' }).eq('following_id', userId);
             
-            const defaultProfile = {
-                 name: userId === USER_ID ? 'TÚ (Sin Nombre)' : 'Anónimo',
-                 bio: userId === USER_ID ? 'Aún no has escrito tu biografía.' : 'Este usuario aún no ha escrito su biografía.',
-                 avatar: DEFAULT_AVATAR
+            const defaultProfile = { 
+                 name: userId === USER_ID ? 'TÚ (Sin Nombre)' : 'Anónimo', 
+                 bio: userId === USER_ID ? 'Aún no has escrito tu biografía.' : 'Este usuario aún no ha escrito su biografía.', 
+                 avatar: DEFAULT_AVATAR 
             };
-
+            
             const profile = profileData ? {
                  name: profileData.name,
                  bio: profileData.bio || defaultProfile.bio,
                  avatar: profileData.avatar_url || DEFAULT_AVATAR,
                  followers: followersCount || 0,
                  pin: profileData.pin,
-                 faz_tokens: profileData.faz_tokens || 0, 
-                 gear_url: profileData.gear_url 
-            } : { ...defaultProfile, avatar: DEFAULT_AVATAR, followers: followersCount || 0, faz_tokens: 0, gear_url: null };
-            
+                 faz_tokens: profileData.faz_tokens || 0,
+                 gear_url: profileData.gear_url,
+                 gear_id: profileData.gear_id
+            } : { ...defaultProfile, avatar: DEFAULT_AVATAR, followers: followersCount || 0, faz_tokens: 0, gear_url: null, gear_id: null };
+
             profilesCache[userId] = profile;
             return profile;
         }
 
+        async function loadProfile(fullLoad = true) {
+             const profile = await getProfileInfo(USER_ID);
+
+             // Update Header Tokens
+             document.getElementById('faz-tokens-display').textContent = profile.faz_tokens;
+
+             // Update Profile Tab
+             if (fullLoad) {
+                 document.getElementById('profile-avatar-display').innerHTML = renderAvatarHTML(profile, 'w-10 h-10');
+                 document.getElementById('profile-name').value = profile.name;
+                 document.getElementById('profile-bio').value = profile.bio;
+                 document.getElementById('display-user-pin').textContent = profile.pin;
+                 
+                 // Stats (Need to fetch post/like counts separately as they aren't in the profile table)
+                 const { count: postsCount } = await supabase.from('posts').select('*', { count: 'exact' }).eq('user_id', USER_ID);
+                 const { count: totalLikes } = await supabase.from('likes').select('*', { count: 'exact' }).eq('target_user_id', USER_ID); // Assuming there's a target_user_id on likes table or a view
+
+                 document.getElementById('profile-tokens').textContent = profile.faz_tokens;
+                 document.getElementById('profile-total-likes').textContent = totalLikes || 0;
+                 document.getElementById('profile-total-posts').textContent = postsCount || 0;
+             }
+             
+             // Update FAB (Avatar)
+             document.getElementById('fab-avatar').src = profile.avatar || DEFAULT_AVATAR; 
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('profile-name').value.trim();
+            const bio = document.getElementById('profile-bio').value.trim();
+            const avatarFile = document.getElementById('profile-avatar-file').files[0];
+            const saveBtn = document.getElementById('save-profile-btn');
+            
+            saveBtn.textContent = 'GUARDANDO...';
+            saveBtn.disabled = true;
+
+            if (!name) {
+                 alert('El nombre de usuario es obligatorio.');
+                 saveBtn.textContent = 'GUARDAR PERFIL';
+                 saveBtn.disabled = false;
+                 return;
+            }
+
+            let avatarUrl = (await getProfileInfo(USER_ID)).avatar_url; // Default to current URL
+
+            if (avatarFile) {
+                 avatarUrl = await uploadFile(avatarFile, 'avatars', 'public_avatars');
+                 if (!avatarUrl) {
+                      saveBtn.textContent = 'GUARDAR PERFIL';
+                      saveBtn.disabled = false;
+                      return;
+                 }
+            }
+            
+            const { error } = await supabase.from('profiles')
+                 .update({ name: name, bio: bio, avatar_url: avatarUrl })
+                 .eq('user_id', USER_ID);
+
+            if (error) {
+                 alert('Error al guardar perfil: ' + error.message);
+            } else {
+                 alert('Perfil guardado exitosamente.');
+                 delete profilesCache[USER_ID]; // Clear cache to force reload
+                 loadProfile();
+            }
+            
+            saveBtn.textContent = 'GUARDAR PERFIL';
+            saveBtn.disabled = false;
+        }
+
+
         // === SUPABASE STORAGE (SIN CAMBIOS) ===
         async function uploadFile(file, bucket, folder = 'public') {
             if (!file) return null;
-            
+
             if (file.size > MAX_FILE_SIZE) {
                  alert(`El archivo es muy grande. El límite es de ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
                  return null;
@@ -743,13 +814,13 @@
             const { error } = await supabase.storage.from(bucket).upload(filePath, file);
 
             if (error) {
-                alert('Error subiendo el archivo: ' + error.message);
-                return null;
+                 alert('Error subiendo el archivo: ' + error.message);
+                 return null;
             }
+
             const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
             return data.publicUrl;
         }
-
 
         // === FEED Y INTERACCIONES ===
         window.handleSearch = () => {
@@ -758,836 +829,718 @@
         }
 
         async function loadFeed(isManualRefresh = false, searchQuery = '') {
-             if (isManualRefresh) profilesCache = {}; 
+            if (isManualRefresh) profilesCache = {};
 
-             let query = supabase.from('posts').select('*').order('created_at', { ascending: false });
+            let query = supabase.from('posts').select('*').order('created_at', { ascending: false });
 
-             if (searchQuery) {
-                 query = query.or(`content.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`);
-             }
+            if (searchQuery) {
+                 // Busca por contenido del post o nombre de usuario
+                 query = query.or(`content.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`); 
+            }
 
-            const { data: posts } = await query;
+            const { data: posts, error: postsError } = await query;
+            if (postsError) {
+                 console.error('Error loading posts:', postsError);
+                 return;
+            }
+
             const { data: userLikes } = await supabase.from('likes').select('post_id').eq('user_id', USER_ID);
             const liked = userLikes?.map(l => l.post_id) || [];
-            
+
             const userIds = [...new Set(posts.map(p => p.user_id))];
             await Promise.all(userIds.map(id => getProfileInfo(id)));
 
             const container = document.getElementById('feed');
-            
-            // Reconstrucción parcial para mantener el input y el botón
-            const contentHTML = `
+            container.innerHTML = `
                 <div class="mb-4">
-                    <input type="text" id="search-input" placeholder="Buscar teorías, usuarios o temas..." class="comment-input" onkeyup="handleSearch()" value="${searchQuery}">
+                     <input type="text" id="search-input" placeholder="Buscar teorías, usuarios o temas..." class="comment-input" onkeyup="handleSearch()" value="${searchQuery}">
                 </div>
                 <div class="flex justify-center mb-4">
-                    <button onclick="loadFeed(true)" class="pizza-btn">🔄 ACTUALIZAR FEED</button>
+                     <button onclick="loadFeed(true)" class="pizza-btn">🔄 ACTUALIZAR FEED</button>
                 </div>
             `;
-            
-            const postsHTML = posts.length === 0 
-                ? (searchQuery ? `<p class="text-center text-red-400">No se encontraron resultados para "${searchQuery}"</p>` : '<p class="text-center text-purple-500">¡Sé el primero!</p>')
-                : posts.map(post => {
-                    const isMyPost = post.user_id === USER_ID;
-                    const hasLiked = liked.includes(post.id);
-                    const profile = profilesCache[post.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-                    
-                    return `
-                        <div class="post" id="post-${post.id}">
-                            <div class="flex items-center mb-2">
-                                ${renderAvatarHTML(profile, 'w-10 h-10')} 
-                                <div>
-                                    <p onclick="viewUserProfile('${post.user_id}')" class="font-bold text-purple-400 username-link">${profile.name} ${isMyPost ? '<span class="text-white">(TÚ)</span>' : ''}</p>
-                                    <p class="text-xs text-gray-400">${new Date(post.created_at).toLocaleString()}</p>
-                                </div>
-                            </div>
-                            <p>${post.content}</p>
-                            ${post.image ? `<img src="${post.image}" class="mt-2 max-h-64 w-full object-contain rounded">` : ''}
-                            <div class="flex items-center mt-2">
-                                <button onclick="likePost('${post.id}', this, '${post.user_id}')" class="pizza-btn mr-2 ${hasLiked ? 'active-like' : ''}">
-                                    Pizza Slice ${post.likes || 0}
-                                </button>
-                                <button onclick="toggleComments('${post.id}')" class="text-sm text-purple-400" id="comment-btn-${post.id}">Comments</button>
-                                ${(isMyPost || IS_ADMIN) ? `<span class="delete-btn" onclick="deletePost('${post.id}', 'posts')">[X BORRAR]</span>` : ''}
-                            </div>
-                            <div id="comments-${post.id}" class="hidden mt-2">
-                                <div id="comment-list-${post.id}"></div>
-                                <input type="text" placeholder="Comentar..." class="comment-input mt-1" onkeydown="if(event.key==='Enter') { addComment('${post.id}', this, '${post.user_id}'); return false; }">
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            
-            container.innerHTML = contentHTML + postsHTML;
-            posts.forEach(post => loadComments(post.id));
-        }
-        
-        // MOD-1: Función para verificar si un usuario ha bloqueado a otro
-        async function checkIfBlocked(blockerId, blockedId) {
-             const { data } = await supabase.from('blocked_users')
-                 .select('id')
-                 .eq('blocker_id', blockerId)
-                 .eq('blocked_id', blockedId)
-                 .single();
-             return !!data;
-        }
-
-        window.likePost = async (postId, buttonElement, postOwnerId) => {
-            // MOD-1: Check si el dueño del post (blockerId) me ha bloqueado a mí (blockedId)
-            const isBlocked = await checkIfBlocked(postOwnerId, USER_ID);
-            if (isBlocked) {
-                alert('ERROR: El dueño de esta publicación te ha bloqueado. No puedes darle "Pizza Slice".');
-                return;
-            }
-            
-            const isLiked = buttonElement.classList.contains('active-like');
-            const currentCount = parseInt(buttonElement.textContent.match(/\d+/)[0] || 0);
-
-            let newCount = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
-            buttonElement.classList.toggle('active-like', !isLiked);
-            buttonElement.textContent = `Pizza Slice ${newCount}`;
-            buttonElement.disabled = true; 
-
-            if (isLiked) {
-                await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', USER_ID);
-            } else {
-                const { error } = await supabase.from('likes').insert({ post_id: postId, user_id: USER_ID });
-                if (error && error.code !== '23505') console.error(error); 
-                
-                // ECON-1: INCREMENTAR TOKENS AL DUEÑO DEL POST
-                if (USER_ID !== postOwnerId) {
-                    const { data: ownerProfile } = await supabase.from('profiles').select('faz_tokens').eq('user_id', postOwnerId).single();
-                    if (ownerProfile) {
-                        await supabase.from('profiles').update({ faz_tokens: ownerProfile.faz_tokens + 1 }).eq('user_id', postOwnerId);
-                    }
-                    localStorage.setItem('hasNewLike', 'true');
-                    checkNotifications();
-                }
-            }
-            
-            const { count } = await supabase.from('likes').select('*', { count: 'exact' }).eq('post_id', postId);
-            await supabase.from('posts').update({ likes: count }).eq('id', postId);
-            
-            // CORRECCIÓN V13.1: Forzar actualización inmediata de Tokens/Likes
-            profilesCache = {}; 
-            await loadProfile(); 
-            
-            buttonElement.disabled = false; 
-        };
-
-        // CORRECCIÓN V13.3: Se mejora la estabilidad de la función de comentarios y se fuerza la apertura.
-        window.addComment = async (postId, input, postOwnerId) => {
-            if (!input.value.trim()) return;
-            
-            const isBlocked = await checkIfBlocked(postOwnerId, USER_ID);
-            if (isBlocked) {
-                 alert('ERROR: El dueño de esta publicación te ha bloqueado. No puedes comentar.');
-                 return;
-            }
-            
-            const { data: profile } = await supabase.from('profiles').select('name, avatar_url').eq('user_id', USER_ID).single();
-            
-            input.disabled = true; 
-
-            // 1. Usamos await para asegurar la inserción antes de recargar
-            const { error } = await supabase.from('comments').insert({
-                post_id: postId,
-                user_id: USER_ID,
-                name: profile?.name || 'Anónimo',
-                avatar: profile?.avatar_url,
-                text: input.value.trim()
-            });
-
-            if (error) {
-                 console.error('Error al insertar comentario:', error);
-                 alert('Error al enviar el comentario. Intenta de nuevo.');
-                 input.disabled = false;
-                 return;
-            }
-
-            input.value = '';
-            
-            if (USER_ID !== postOwnerId) {
-                 localStorage.setItem('hasNewComment', 'true');
-                 checkNotifications();
-            }
-            
-            // 2. Esperar la recarga de comentarios para que se muestren inmediatamente y actualizar el contador
-            await loadComments(postId);
-
-            // 3. FIX V13.3: Asegurar que la sección de comentarios esté abierta
-            const commentsDiv = document.getElementById(`comments-${postId}`);
-            if (commentsDiv.classList.contains('hidden')) {
-                 commentsDiv.classList.remove('hidden');
-            }
-            
-            input.disabled = false; // Habilitar de nuevo
-        };
-
-
-        // === PERFIL DE USUARIO Y BLOQUEO (MOD-1) ===
-        window.viewUserProfile = async (userId) => {
-            targetUserId = userId; 
-            const userProfile = await getProfileInfo(targetUserId);
-            
-            document.getElementById('view-avatar-container').innerHTML = renderAvatarHTML(userProfile, 'w-16 h-16'); // Renderizado con Gear
-
-            document.getElementById('view-name').textContent = userProfile.name;
-            document.getElementById('view-id').textContent = 'ID: ' + targetUserId;
-            document.getElementById('view-bio').textContent = userProfile.bio;
-            document.getElementById('view-name-posts').textContent = userProfile.name;
-            document.getElementById('view-followers').textContent = userProfile.followers;
-            
-            const followBtn = document.getElementById('follow-btn');
-            const blockBtn = document.getElementById('block-btn');
-            
-            if (targetUserId === USER_ID) {
-                 followBtn.style.display = 'none'; 
-                 blockBtn.style.display = 'none'; 
-            } else {
-                 followBtn.style.display = 'inline-block';
-                 blockBtn.style.display = 'inline-block';
-
-                 // Lógica del botón SEGUIR
-                 const { data: followData } = await supabase.from('followers').select('*').eq('follower_id', USER_ID).eq('following_id', targetUserId).single();
-                 followBtn.textContent = followData ? 'DEJAR DE SEGUIR' : 'SEGUIR';
-
-                 // MOD-1: Lógica del botón BLOQUEAR
-                 const isBlocked = await checkIfBlocked(USER_ID, targetUserId); // Yo (USER_ID) he bloqueado a targetUserId
-                 blockBtn.textContent = isBlocked ? 'DESBLOQUEAR' : 'BLOQUEAR';
-                 blockBtn.classList.toggle('bg-red-600', !isBlocked);
-                 blockBtn.classList.toggle('bg-gray-500', isBlocked);
-            }
-            
-            // Cargar publicaciones de ese usuario
-            const { data: posts } = await supabase.from('posts').select('*').eq('user_id', targetUserId).order('created_at', { ascending: false });
-            const listContainer = document.getElementById('user-posts-list');
-            listContainer.innerHTML = '';
 
             if (posts.length === 0) {
-                 listContainer.innerHTML = '<p class="text-center text-gray-500">Este usuario aún no ha hecho ninguna publicación.</p>';
-            } else {
-                 posts.forEach(post => {
-                     const isMyPost = post.user_id === USER_ID;
-                     const div = document.createElement('div');
-                     div.className = 'post';
-                     div.innerHTML = `
-                         <p class="text-xs text-gray-400">${new Date(post.created_at).toLocaleString()}</p>
-                         <p class="mt-1">${post.content}</p>
-                         ${post.image ? `<img src="${post.image}" class="mt-2 max-h-48 w-full object-contain rounded">` : ''}
-                         <div class="flex items-center mt-2">
-                             <span class="text-sm text-yellow-300">Pizza Slice ${post.likes || 0}</span>
-                             <span class="text-sm text-purple-400 ml-4">Comments</span>
-                             ${(isMyPost || IS_ADMIN) ? `<span class="delete-btn" onclick="deletePost('${post.id}', 'posts')">[X BORRAR]</span>` : ''}
+                 container.innerHTML += `<p class="text-center text-purple-500">¡Sé el primero!</p>`;
+                 return;
+            }
+
+            posts.forEach(post => {
+                 const profile = profilesCache[post.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
+                 const isLiked = liked.includes(post.id);
+                 const deleteBtn = (post.user_id === USER_ID || IS_ADMIN) 
+                     ? `<span class="delete-btn" onclick="deletePost(${post.id}, 'posts')">BORRAR POST</span>`
+                     : '';
+                     
+                 const mediaHTML = post.media_url 
+                     ? `<img src="${post.media_url}" class="w-full mt-2 rounded-lg object-contain max-h-80" alt="Contenido de la Teoría">`
+                     : '';
+                     
+                 container.innerHTML += `
+                     <div class="post" id="post-${post.id}">
+                         <div class="flex items-start justify-between">
+                             <div class="flex items-center">
+                                 ${renderAvatarHTML(profile, 'w-10 h-10 mr-2')}
+                                 <div>
+                                     <span class="text-sm font-bold text-purple-400 username-link" onclick="loadUserProfile('${post.user_id}')">${profile.name}</span>
+                                     <p class="text-xs text-gray-500">${new Date(post.created_at).toLocaleString()}</p>
+                                 </div>
+                             </div>
+                             ${deleteBtn}
                          </div>
-                     `;
-                     listContainer.appendChild(div);
-                 });
-            }
-
-            switchTab('user-profile-view');
-        };
-
-        // CORRECCIÓN V13.1: Implementación de la función toggleFollow
-        window.toggleFollow = async () => {
-             if (!targetUserId) return;
-
-             const followBtn = document.getElementById('follow-btn');
-             followBtn.disabled = true;
-
-             // 1. Check current status
-             const { data: followData } = await supabase.from('followers').select('*').eq('follower_id', USER_ID).eq('following_id', targetUserId).single();
-
-             if (followData) {
-                 // 2. Unfollow
-                 await supabase.from('followers').delete().eq('follower_id', USER_ID).eq('following_id', targetUserId);
-                 alert(`Has dejado de seguir a ${document.getElementById('view-name').textContent}.`);
-             } else {
-                 // 2. Follow
-                 const { error } = await supabase.from('followers').insert({ follower_id: USER_ID, following_id: targetUserId });
-                 if (error && error.code !== '23505') console.error(error);
-                 alert(`Ahora sigues a ${document.getElementById('view-name').textContent}.`);
-             }
-
-             // 3. Recargar la vista de perfil para actualizar el botón y el contador
-             profilesCache = {}; // Limpia caché para recargar contador de seguidores
-             await viewUserProfile(targetUserId);
-             followBtn.disabled = false;
-        };
-
-        window.toggleBlock = async () => {
-             if (!targetUserId) return;
-             
-             const blockBtn = document.getElementById('block-btn');
-             blockBtn.disabled = true;
-
-             const isCurrentlyBlocked = await checkIfBlocked(USER_ID, targetUserId);
-             
-             if (isCurrentlyBlocked) {
-                 // Desbloquear
-                 await supabase.from('blocked_users').delete().eq('blocker_id', USER_ID).eq('blocked_id', targetUserId);
-                 alert(`Has desbloqueado a ${document.getElementById('view-name').textContent}.`);
-             } else {
-                 // Bloquear
-                 const { error } = await supabase.from('blocked_users').insert({ blocker_id: USER_ID, blocked_id: targetUserId });
-                 if (error && error.code !== '23505') console.error(error);
-                 alert(`Has BLOQUEADO a ${document.getElementById('view-name').textContent}. Ya no podrá interactuar contigo.`);
-             }
-
-             // Recargar la vista de perfil para actualizar el botón
-             viewUserProfile(targetUserId);
-             blockBtn.disabled = false;
-        };
-        
-        // ... (resto de funciones de interacciones) ...
-
-        // === PERFIL Y ESTADÍSTICAS (ECON-1) ===
-        async function loadProfile() {
-            const profile = await getProfileInfo(USER_ID); 
-
-            if (profile) {
-                 document.getElementById('profile-name').value = profile.name || '';
-                 document.getElementById('profile-bio').value = profile.bio || '';
-                 
-                 // Renderiza el avatar con gear
-                 document.getElementById('profile-avatar-display').innerHTML = renderAvatarHTML(profile, 'w-10 h-10');
-                 document.getElementById('fab-avatar').src = profile.avatar || DEFAULT_AVATAR; 
-
-                 document.getElementById('display-user-pin').textContent = profile.pin ? '***' + profile.pin.slice(-1) : 'NO DISPONIBLE';
-                 
-                 // Muestra los tokens
-                 document.getElementById('faz-tokens-display').textContent = profile.faz_tokens; 
-                 document.getElementById('profile-tokens').textContent = profile.faz_tokens;
-                 document.getElementById('shop-tokens-display').textContent = profile.faz_tokens; 
-            } else {
-                 document.getElementById('fab-avatar').src = DEFAULT_AVATAR;
-            }
-            
-             if (IS_ADMIN) {
-                 document.getElementById('header-title').textContent = 'Fazbear Social Hub (ADMIN)';
-            }
-            
-            const { data: posts, count: totalPosts } = await supabase.from('posts').select('likes', { count: 'exact' }).eq('user_id', USER_ID);
-            
-            const totalLikesReceived = posts ? posts.reduce((sum, post) => sum + (post.likes || 0), 0) : 0;
-
-            document.getElementById('profile-total-likes').textContent = totalLikesReceived;
-            document.getElementById('profile-total-posts').textContent = totalPosts || 0;
-        }
-
-        window.saveProfile = async () => {
-            const name = document.getElementById('profile-name').value.trim();
-            const bio = document.getElementById('profile-bio').value.trim();
-            const avatarFileInput = document.getElementById('profile-avatar-file');
-            const avatarFile = avatarFileInput.files[0];
-            const currentProfile = await getProfileInfo(USER_ID);
-            let avatarUrl = currentProfile.avatar || DEFAULT_AVATAR; 
-            const saveBtn = document.getElementById('save-profile-btn');
-            
-            if (!name) {
-                alert('El nombre (Nombre Único) es obligatorio.');
-                return;
-            }
-
-            if (avatarFile && avatarFile.size > MAX_FILE_SIZE) {
-                 alert(`El archivo de avatar es muy grande. El límite es de ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
-                 return;
-            }
-            
-            saveBtn.textContent = 'CARGANDO...';
-            saveBtn.disabled = true;
-
-            if (avatarFile) {
-                avatarUrl = await uploadFile(avatarFile, 'post_images', 'avatars');
-                if (!avatarUrl) {
-                    saveBtn.textContent = 'GUARDAR PERFIL';
-                    saveBtn.disabled = false;
-                    return;
-                }
-            }
-            
-            const { data: nameCheck } = await supabase.from('profiles').select('user_id').eq('name', name).neq('user_id', USER_ID);
-            if (nameCheck && nameCheck.length > 0) {
-                 alert(`ERROR: El nombre de usuario "${name}" ya está en uso por otro guardia.`);
-                 saveBtn.textContent = 'GUARDAR PERFIL';
-                 saveBtn.disabled = false;
-                 return;
-            }
-
-            // Mantenemos el pin, tokens y gear_url
-            const { error: updateError } = await supabase.from('profiles').update({
-                name: name,
-                bio: bio,
-                avatar_url: avatarUrl,
-                pin: currentProfile.pin,
-                faz_tokens: currentProfile.faz_tokens,
-                gear_url: currentProfile.gear_url
-            }).eq('user_id', USER_ID); 
-
-            if (updateError) {
-                console.error('Error al guardar el perfil:', updateError);
-                alert('Error al guardar el perfil en Supabase.');
-                saveBtn.textContent = 'GUARDAR PERFIL';
-                saveBtn.disabled = false;
-                return;
-            }
-
-            profilesCache = {}; 
-            
-            await supabase.from('posts').update({ name: name, avatar: avatarUrl }).eq('user_id', USER_ID);
-            await supabase.from('chat_messages').update({ name: name, avatar: avatarUrl }).eq('user_id', USER_ID);
-            await supabase.from('cameras').update({ name: name, avatar: avatarUrl }).eq('user_id', USER_ID);
-
-            avatarFileInput.value = ''; 
-            
-            loadProfile();
-            saveProfile(); // Recarga para asegurar que todos los caches internos se actualicen
-            saveBtn.textContent = 'GUARDAR PERFIL';
-            saveBtn.disabled = false;
-            alert('Perfil guardado exitosamente!');
-        };
-
-
-        // === TIENDA DE TOKENS (ECON-2) ===
-        function loadShop() {
-             const shopContainer = document.getElementById('shop-items');
-             shopContainer.innerHTML = '';
-             const currentTokens = parseInt(document.getElementById('shop-tokens-display').textContent);
-             const currentProfile = profilesCache[USER_ID] || {};
-
-             STORE_ITEMS.forEach(item => {
-                 const isOwned = currentProfile.gear_url === item.url;
-                 const canAfford = currentTokens >= item.cost;
-                 const buttonText = isOwned ? 'EQUIPADO' : (canAfford ? 'COMPRAR' : `FALTAN ${item.cost - currentTokens} 💰`);
-                 
-                 const div = document.createElement('div');
-                 div.className = 'bg-gray-800 p-4 rounded border border-yellow-500';
-                 div.innerHTML = `
-                     <h3 class="text-lg text-white mb-2">${item.name}</h3>
-                     <div class="flex items-center justify-between mb-3">
-                         <img src="${item.url}" class="w-20 h-20 object-contain rounded border border-gray-600">
-                         <p class="text-2xl text-yellow-400">💰 ${item.cost}</p>
+                         <p class="mt-2 text-white">${post.content}</p>
+                         ${mediaHTML}
+                         <div class="flex items-center mt-3 justify-between border-t border-gray-700 pt-2">
+                             <button class="pizza-btn ${isLiked ? 'active-like' : ''}" onclick="handleLike(${post.id}, ${isLiked})">
+                                 🍕 Slice <span id="likes-${post.id}">${post.likes_count || 0}</span>
+                             </button>
+                             <button class="pizza-btn bg-gray-600 hover:bg-gray-500" onclick="toggleComments(${post.id})">
+                                 Comentarios <span id="comments-count-${post.id}">${post.comments_count || 0}</span>
+                             </button>
+                         </div>
+                         <div id="comments-section-${post.id}" class="comments-section mt-3 hidden">
+                             <div id="comments-list-${post.id}"></div>
+                             <div class="flex mt-2">
+                                 <input type="text" id="comment-input-${post.id}" placeholder="Escribe un comentario..." class="comment-input flex-grow">
+                                 <button class="send-btn" onclick="sendComment(${post.id})">Enviar</button>
+                             </div>
+                         </div>
                      </div>
-                     <button id="buy-btn-${item.id}" onclick="buyGear('${item.id}')" class="pizza-btn w-full ${isOwned ? 'bg-green-600' : ''}" ${!canAfford || isOwned ? 'disabled' : ''}>
-                         ${buttonText}
-                     </button>
                  `;
-                 shopContainer.appendChild(div);
-             });
+            });
+            document.getElementById('search-input').value = searchQuery; // Preserve search input
         }
-        
-        // CORRECCIÓN V13.2: Se añade estado de carga y await para forzar la actualización inmediata.
-        window.buyGear = async (itemId) => {
-             const item = STORE_ITEMS.find(i => i.id === itemId);
-             const currentProfile = profilesCache[USER_ID];
-             const button = document.getElementById(`buy-btn-${itemId}`);
-             
-             if (!item || !currentProfile) return;
 
-             if (currentProfile.faz_tokens < item.cost) {
-                 alert('No tienes suficientes Faz-Tokens para comprar este artículo.');
-                 return;
-             }
-             
-             if (button) {
-                 button.disabled = true;
-                 button.textContent = 'PROCESANDO...';
-             }
+        // ===================================
+        // === FUNCIONES DE INTERACCIÓN (FEED) ===
+        // ===================================
 
-             if (currentProfile.gear_url === item.url) {
-                 // Si ya lo tiene, se lo quitamos (lo desequipamos)
-                 if (confirm(`¿Quieres DESEQUIPAR ${item.name}?`)) {
-                    await supabase.from('profiles').update({ gear_url: null }).eq('user_id', USER_ID);
-                    profilesCache = {}; 
-                    await loadProfile(); // Se usa await para asegurar la actualización de tokens/gear
-                    loadShop();
-                    alert(`${item.name} desequipado.`);
+        async function handleLike(postId, isLiked) {
+             const postElement = document.getElementById(`post-${postId}`);
+             const likeBtn = postElement.querySelector('.pizza-btn');
+             const likesCountEl = document.getElementById(`likes-${postId}`);
+             
+             likeBtn.disabled = true;
+
+             if (isLiked) {
+                 // UNLIKE: Borrar registro y decrementar contador
+                 const { error: deleteError } = await supabase.from('likes').delete().match({ user_id: USER_ID, post_id: postId });
+                 if (!deleteError) {
+                      likeBtn.classList.remove('active-like');
+                      likesCountEl.textContent = parseInt(likesCountEl.textContent) - 1;
+                      // En un entorno real, la actualización del posts.likes_count la haría un trigger en la base de datos.
+                 } else {
+                     console.error('Error al quitar like:', deleteError);
                  }
-                 if (button) { button.disabled = false; button.textContent = 'EQUIPADO'; }
+             } else {
+                 // LIKE: Insertar registro e incrementar contador
+                 const { error: insertError } = await supabase.from('likes').insert({ user_id: USER_ID, post_id: postId });
+                 if (!insertError) {
+                      likeBtn.classList.add('active-like');
+                      likesCountEl.textContent = parseInt(likesCountEl.textContent) + 1;
+                      // En un entorno real, la actualización del posts.likes_count la haría un trigger en la base de datos.
+                 } else {
+                      console.error('Error al dar like:', insertError);
+                 }
+             }
+             
+             likeBtn.disabled = false;
+        }
+
+        async function toggleComments(postId) {
+             const commentsSection = document.getElementById(`comments-section-${postId}`);
+             commentsSection.classList.toggle('hidden');
+             
+             if (!commentsSection.classList.contains('hidden')) {
+                 loadComments(postId);
+             }
+        }
+
+        async function loadComments(postId) {
+             const commentsList = document.getElementById(`comments-list-${postId}`);
+             commentsList.innerHTML = '<p class="text-xs text-gray-500 text-center">Cargando comentarios...</p>';
+
+             const { data: comments, error } = await supabase.from('comments')
+                 .select('*')
+                 .eq('post_id', postId)
+                 .order('created_at', { ascending: true });
+
+             if (error) {
+                 console.error('Error loading comments:', error);
+                 commentsList.innerHTML = '<p class="text-xs text-red-500 text-center">Error al cargar comentarios.</p>';
+                 return;
+             }
+             
+             if (comments.length === 0) {
+                 commentsList.innerHTML = '<p class="text-xs text-gray-500 text-center">Sé el primero en comentar.</p>';
                  return;
              }
 
-             if (confirm(`¿Estás seguro de que quieres gastar ${item.cost} Faz-Tokens en ${item.name}?`)) {
-                 // 1. Deducir tokens
-                 const newTokens = currentProfile.faz_tokens - item.cost;
-                 
-                 // 2. Aplicar el nuevo Gear URL y guardar
-                 const { error } = await supabase.from('profiles').update({
-                     faz_tokens: newTokens,
-                     gear_url: item.url
-                 }).eq('user_id', USER_ID);
+             const userIds = [...new Set(comments.map(c => c.user_id))];
+             await Promise.all(userIds.map(id => getProfileInfo(id)));
 
-                 if (error) {
-                     console.error('Error al comprar:', error);
-                     alert('Error de compra. Intenta de nuevo.');
-                     if (button) { button.disabled = false; button.textContent = 'COMPRAR'; }
+             commentsList.innerHTML = comments.map(comment => {
+                 const profile = profilesCache[comment.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
+                 const deleteBtn = (comment.user_id === USER_ID || IS_ADMIN) 
+                     ? `<span class="delete-btn" onclick="deleteComment(${comment.id}, ${postId})">Borrar</span>`
+                     : '';
+
+                 return `
+                     <div class="bg-gray-700 p-2 rounded-lg mt-1 text-sm flex justify-between items-start">
+                         <div class="flex items-center flex-grow">
+                             ${renderAvatarHTML(profile, 'w-6 h-6 mr-2')}
+                             <p><span class="font-bold text-purple-300 username-link" onclick="loadUserProfile('${comment.user_id}')">${profile.name}</span>: ${comment.content}</p>
+                         </div>
+                         ${deleteBtn}
+                     </div>
+                 `;
+             }).join('');
+        }
+
+        async function sendComment(postId) {
+             const input = document.getElementById(`comment-input-${postId}`);
+             const content = input.value.trim();
+
+             if (!content) return;
+             
+             input.disabled = true;
+
+             const { error } = await supabase.from('comments').insert({
+                 post_id: postId,
+                 user_id: USER_ID,
+                 content: content
+             });
+
+             if (error) {
+                 console.error('Error al enviar comentario:', error);
+                 alert('Error al enviar el comentario.');
+             } else {
+                 input.value = '';
+                 loadComments(postId);
+                 // Update comments count for the post (ideally via DB trigger)
+                 const commentsCountEl = document.getElementById(`comments-count-${postId}`);
+                 if (commentsCountEl) {
+                      commentsCountEl.textContent = parseInt(commentsCountEl.textContent) + 1;
+                 }
+             }
+             
+             input.disabled = false;
+        }
+
+        async function deleteComment(commentId, postId) {
+             if (confirm('¿Estás seguro de que quieres BORRAR este comentario?')) {
+                 // Check if the comment belongs to the user or if the user is Admin (Supabase RLS handles this, but client-side check is safer UX)
+                 const { data: comment, error: fetchError } = await supabase.from('comments').select('user_id').eq('id', commentId).single();
+                 
+                 if (fetchError || !comment) {
+                     alert('Error al verificar el comentario.');
                      return;
                  }
                  
-                 profilesCache = {}; // Limpia caché para recargar tokens y gear
-                 await loadProfile(); // Se usa await para asegurar la actualización de tokens/gear
-                 loadShop();
-                 alert(`¡Compra exitosa! Has gastado ${item.cost} Faz-Tokens. ${item.name} equipado.`);
-             }
-             if (button) { button.disabled = false; button.textContent = 'COMPRAR'; }
-        }
-        
-        // === CAMBIOS V13.1: FUNCIÓN DE MAPA ===
-        function loadMap(isInitialLoad = false) {
-             const reportContainer = document.getElementById('animatronic-status');
-
-             // Lógica ficticia para simular movimiento/estado
-             const statuses = ANIMATRONIC_STATUS.map(a => {
-                 const randomChange = Math.random();
-                 let displayStatus = a.status;
-                 let displayLocation = a.location;
-                 let color = 'text-green-400';
-                 
-                 // Lógica simple de "escalamiento de peligro"
-                 if (randomChange < 0.25) {
-                     displayStatus = 'Localizado, inactivo.';
-                     color = 'text-green-400';
-                 } else if (randomChange < 0.6) {
-                     displayStatus = 'Movimiento detectado.';
-                     color = 'text-yellow-400';
-                     // Cambio de sala simulado para Bonnie y Chica
-                     if (a.name.includes('Bonnie') || a.name.includes('Chica')) {
-                         displayLocation = 'Pasillo Este/Oeste';
-                     }
-                 } else if (randomChange < 0.9) {
-                     displayStatus = 'Alerta Máxima. Posición crítica.';
-                     color = 'text-red-400';
-                     displayLocation = 'Cerca de la Oficina (CAM 7)';
-                 } else {
-                      displayStatus = 'ERROR. FUERA DE LÍNEA.';
-                      color = 'text-gray-500';
-                      displayLocation = 'Desconocida';
+                 if (comment.user_id !== USER_ID && !IS_ADMIN) {
+                      alert('No tienes permiso para borrar comentarios de otros guardias.');
+                      return;
                  }
 
-
-                 return `
-                     <p class="mb-1">
-                         <span class="font-bold">${a.name}:</span> 
-                         <span class="${color}">${displayStatus}</span>
-                         <span class="text-sm text-gray-500 ml-2">(${displayLocation})</span>
-                     </p>
-                 `;
-             }).join('');
-             
-             reportContainer.innerHTML = statuses;
-        }
-
-        // CORRECCIÓN V13.2: Implementación completa de sendChat
-        window.sendChat = async () => {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            const sendBtn = document.querySelector('.send-btn');
-            
-            if (!text) return;
-
-            const profile = await getProfileInfo(USER_ID);
-            
-            sendBtn.disabled = true;
-            input.disabled = true;
-
-            const { error } = await supabase.from('chat_messages').insert({
-                user_id: USER_ID,
-                name: profile.name,
-                avatar: profile.avatar,
-                text: text
-            });
-
-            if (error) {
-                console.error('Error enviando chat:', error);
-                alert('Error al enviar el mensaje de chat.');
-            }
-
-            input.value = '';
-            input.disabled = false;
-            sendBtn.disabled = false;
-            
-            // Realtime se encarga de dibujar el mensaje.
-        };
-
-
-        // === RESTO DE FUNCIONES (loadCameras, loadChat, etc.) ===
-        
-        async function loadCameras(isManualRefresh = false) {
-             if (isManualRefresh) profilesCache = {};
-             const container = document.getElementById('cameras-list');
-             container.innerHTML = '<p class="text-center text-gray-500">Cargando grabaciones...</p>';
-             
-             const { data: cameras } = await supabase.from('cameras').select('*').order('created_at', { ascending: false });
-             
-             const userIds = [...new Set(cameras.map(c => c.user_id))];
-             await Promise.all(userIds.map(id => getProfileInfo(id)));
-
-             container.innerHTML = '';
-             container.innerHTML += cameras.length === 0 ? '<p class="text-center text-gray-500">No hay grabaciones activas.</p>' : '';
-             
-             cameras.forEach(cam => {
-                 const isMyPost = cam.user_id === USER_ID;
-                 const profile = profilesCache[cam.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-
-                 const div = document.createElement('div');
-                 div.className = 'post';
-                 div.innerHTML = `
-                     <div class="flex items-center mb-2">
-                         ${renderAvatarHTML(profile, 'w-10 h-10')} 
-                         <div>
-                             <p onclick="viewUserProfile('${cam.user_id}')" class="font-bold text-purple-400 username-link">${profile.name} ${isMyPost ? '<span class="text-white">(TÚ)</span>' : ''}</p>
-                             <p class="text-xs text-gray-400">${new Date(cam.created_at).toLocaleString()}</p>
-                         </div>
-                     </div>
-                     <video src="${cam.video}" controls class="camera-video mb-2"></video>
-                     <p>${cam.content}</p>
-                     ${(isMyPost || IS_ADMIN) ? `<span class="delete-btn" onclick="deletePost('${cam.id}', 'cameras')">[X BORRAR]</span>` : ''}
-                 `;
-                 container.appendChild(div);
-             });
-        }
-        
-        // FIX V13.3: Ajuste de estilo para mostrar mensajes propios a la derecha
-        const appendChatMessage = (m) => {
-             const container = document.getElementById('chat-messages');
-             const isMyMessage = m.user_id === USER_ID;
-             
-             const profile = profilesCache[m.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-             
-             const div = document.createElement('div');
-             
-             // FLEX DIRECTION AND ALIGNMENT
-             div.className = `flex mb-2 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
-             
-             // MESSAGE BUBBLE STYLE
-             const bubbleClasses = isMyMessage 
-                 ? 'bg-purple-700 text-white p-2 rounded-lg max-w-xs' 
-                 : 'bg-gray-700 text-white p-2 rounded-lg max-w-xs';
-             
-             const messageContent = `
-                 <div class="flex items-end ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}">
-                     <div class="flex-shrink-0 ${isMyMessage ? 'ml-2' : 'mr-2'}">
-                         ${renderAvatarHTML(profile, 'w-8 h-8')} 
-                     </div>
-                     <div class="${bubbleClasses}">
-                         <p class="text-xs text-yellow-300 font-bold ${isMyMessage ? 'text-right' : 'text-left'}">${profile.name} ${isMyMessage ? '<span class="text-white">(TÚ)</span>' : ''}</p>
-                         <p class="text-sm flex items-center justify-between">
-                            <span>${m.text}</span>
-                            ${(isMyMessage || IS_ADMIN) ? `<span class="delete-btn text-xs ml-2" onclick="deleteChat('${m.id}')">[X]</span>` : ''}
-                         </p>
-                     </div>
-                 </div>
-             `;
-             
-             div.innerHTML = messageContent;
-             container.appendChild(div);
-             container.scrollTop = container.scrollHeight;
-        }
-
-        async function loadChat() {
-            const { data: messages } = await supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(50);
-            const container = document.getElementById('chat-messages');
-            container.innerHTML = '';
-            
-            const userIds = [...new Set(messages.map(m => m.user_id))];
-            await Promise.all(userIds.map(id => getProfileInfo(id)));
-            
-            messages.forEach(m => appendChatMessage(m));
-        }
-        
-        // CORRECCIÓN V13.3: Muestra el contador de comentarios y el avatar
-        async function loadComments(postId) {
-            const { data: comments, count } = await supabase.from('comments').select('*', { count: 'exact' }).eq('post_id', postId).order('created_at', { ascending: true });
-            const list = document.getElementById(`comment-list-${postId}`);
-            const button = document.getElementById(`comment-btn-${postId}`);
-
-            if (button) { // Actualiza el contador en el botón
-                 button.textContent = `Comments (${count || 0})`;
-            }
-
-            if (list) {
-                 const userIds = [...new Set(comments.map(c => c.user_id))];
-                 await Promise.all(userIds.map(id => getProfileInfo(id)));
+                 const { error: deleteError } = await supabase.from('comments').delete().eq('id', commentId);
                  
-                 // Limpia y vuelve a cargar
-                 list.innerHTML = comments.map(c => {
-                    const profile = profilesCache[c.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
-                    
-                    return `
-                        <div class="flex items-start mt-2">
-                             ${renderAvatarHTML(profile, 'w-6 h-6')}
-                             <p class="text-sm ml-2"><strong>${profile.name}:</strong> ${c.text}</p>
-                        </div>
-                    `;
-                 }).join('');
-            }
-        }
-        
-        function checkNotifications() {
-             const hasNewNotification = localStorage.getItem('hasNewComment') === 'true' || localStorage.getItem('hasNewLike') === 'true';
-             
-             if (hasNewNotification) {
-                 document.getElementById('feed-notification-dot').style.display = 'block';
-             } else {
-                 document.getElementById('feed-notification-dot').style.display = 'none';
-             }
-        }
-        
-        function setupRealtime() {
-            // Notificación para comentarios
-            supabase.channel('comments_channel')
-                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
-                    supabase.from('posts').select('user_id').eq('id', payload.new.post_id).single()
-                          .then(({ data }) => {
-                              if (data && data.user_id === USER_ID && payload.new.user_id !== USER_ID) {
-                                   localStorage.setItem('hasNewComment', 'true');
-                                   checkNotifications();
-                              }
-                          });
-                     loadComments(payload.new.post_id); // FIX V13.3: Asegura que el contador se actualice
-                 })
-                 .subscribe();
-
-            // Notificación para Likes
-            supabase.channel('likes_channel')
-                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, (payload) => {
-                    supabase.from('posts').select('user_id').eq('id', payload.new.post_id).single()
-                          .then(({ data }) => {
-                              // ECON-1: Si mi post recibió un like, recargo mi perfil para el contador de tokens
-                              if (data && data.user_id === USER_ID) {
-                                   loadProfile(); 
-                              }
-                              // Si el post es tuyo y no te lo diste tú mismo
-                              if (data && data.user_id === USER_ID && payload.new.user_id !== USER_ID) {
-                                   localStorage.setItem('hasNewLike', 'true');
-                                   checkNotifications();
-                              }
-                          });
-                     loadFeed(); // Refresca el feed para actualizar el contador de likes.
-                 })
-                 .subscribe();
-
-            // Mensajes de chat
-            supabase.channel('chat_channel')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
-                    getProfileInfo(payload.new.user_id).then(profile => {
-                        const messageWithProfile = { ...payload.new, name: profile.name, avatar: profile.avatar };
-                        appendChatMessage(messageWithProfile);
-                    });
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' }, () => loadChat())
-                .subscribe();
-
-            // Actualización general de Feed/Cámaras/Likes/Perfil
-            supabase.channel('feed_channel')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' }, () => loadFeed()) // Actualiza por si cambian los likes
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, () => loadFeed()) // Actualiza por si se borra un post
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'cameras' }, () => loadCameras())
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
-                    if (payload.new.user_id === USER_ID) {
-                        profilesCache = {}; 
-                        loadProfile();
-                    }
-                    if (currentTab === 'user-profile-view' && targetUserId) {
-                         viewUserProfile(targetUserId); 
-                    }
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'followers' }, () => {
-                     // Corregido: Limpiar cache y recargar perfil si estamos viendo la vista de perfil
-                     profilesCache = {}; 
-                     if (currentTab === 'user-profile-view' && targetUserId) {
-                          viewUserProfile(targetUserId); 
-                     }
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'blocked_users' }, () => {
-                     if (currentTab === 'user-profile-view' && targetUserId) {
-                          viewUserProfile(targetUserId);
-                     }
-                })
-                .subscribe();
-                
-            checkNotifications(); 
-        }
-        
-        function toggleComments(postId) {
-             const commentsDiv = document.getElementById(`comments-${postId}`);
-             if (commentsDiv) {
-                 commentsDiv.classList.toggle('hidden');
-                 if (!commentsDiv.classList.contains('hidden')) {
-                      // Asegurarse de que los comentarios estén cargados al abrir
+                 if (deleteError) {
+                      console.error('Error al borrar comentario:', deleteError);
+                      alert('Error al borrar el comentario.');
+                 } else {
+                      // Update comments count
+                      const commentsCountEl = document.getElementById(`comments-count-${postId}`);
+                      if (commentsCountEl) {
+                           commentsCountEl.textContent = Math.max(0, parseInt(commentsCountEl.textContent) - 1);
+                      }
                       loadComments(postId);
                  }
              }
         }
+        
+        // ===================================
+        // === FUNCIONES DE PERFIL Y TIENDA (SHOP) ===
+        // ===================================
+
+        function loadShop() {
+             loadProfile(false); // Refresca los tokens
+             const container = document.getElementById('shop-items');
+             container.innerHTML = '<p class="text-center text-yellow-500">Cargando tienda...</p>';
+             
+             // Check which items the user owns to disable the purchase button
+             supabase.from('profiles').select('gear_id, gear_url').eq('user_id', USER_ID).single().then(({ data: profile }) => {
+                 
+                 container.innerHTML = STORE_ITEMS.map(item => {
+                     const isOwned = profile.gear_id === item.id;
+                     const isEquipped = profile.gear_url === item.url;
+                     const buttonText = isEquipped ? 'EQUIPADO ✅' : (isOwned ? 'EQUIPAR' : `COMPRAR (${item.cost} 💰)`);
+                     
+                     return `
+                         <div class="bg-gray-800 p-4 rounded border-2 border-yellow-500 flex flex-col items-center text-center">
+                             <img src="${item.url}" alt="${item.name}" class="w-20 h-20 mb-2 object-contain">
+                             <h3 class="text-white font-bold">${item.name}</h3>
+                             <p class="text-sm text-gray-400">ID: ${item.id}</p>
+                             <button class="pizza-btn w-full mt-3 bg-yellow-600 hover:bg-yellow-700" 
+                                 onclick="handlePurchase('${item.id}', ${item.cost}, '${item.url}')" 
+                                 ${isEquipped ? 'disabled' : ''}>
+                                 ${buttonText}
+                             </button>
+                         </div>
+                     `;
+                 }).join('');
+             });
+        }
+
+        async function handlePurchase(itemId, cost, itemUrl) {
+             const profile = profilesCache[USER_ID];
+             
+             // 1. Check if item is already owned/equipped (for re-equipping)
+             if (profile.gear_id === itemId) {
+                 // Equip already owned item
+                 const { error } = await supabase.from('profiles')
+                     .update({ gear_url: itemUrl })
+                     .eq('user_id', USER_ID);
+                     
+                 if (!error) {
+                     alert(`¡Has equipado ${STORE_ITEMS.find(i => i.id === itemId).name}!`);
+                     profile.gear_url = itemUrl;
+                     profilesCache[USER_ID] = profile; // Update cache
+                     loadShop();
+                     loadProfile(false); // Update profile avatar
+                 } else {
+                     alert('Error al equipar el ítem: ' + error.message);
+                 }
+                 return;
+             }
+             
+             // 2. Check if user has enough tokens for purchase
+             if (profile.faz_tokens < cost) {
+                 alert('¡Tokens insuficientes! Necesitas ' + cost + ' 💰.');
+                 return;
+             }
+             
+             if (confirm(`¿Comprar ${STORE_ITEMS.find(i => i.id === itemId).name} por ${cost} tokens? Esto lo equipará inmediatamente.`)) {
+                 
+                 // 3. Perform the purchase (debit tokens and update gear/equip)
+                 const newTokens = profile.faz_tokens - cost;
+
+                 const { error } = await supabase.from('profiles')
+                     .update({ 
+                         faz_tokens: newTokens, 
+                         gear_id: itemId, 
+                         gear_url: itemUrl 
+                     })
+                     .eq('user_id', USER_ID);
+
+                 if (!error) {
+                     alert('¡Compra exitosa! Ítem equipado.');
+                     profile.faz_tokens = newTokens;
+                     profile.gear_id = itemId;
+                     profile.gear_url = itemUrl;
+                     profilesCache[USER_ID] = profile; // Update cache
+                     loadShop();
+                     loadProfile(false); // Update profile avatar and token display
+                 } else {
+                     alert('Error en la transacción: ' + error.message);
+                 }
+             }
+        }
+        
+        async function loadUserPosts(userId) {
+             const container = document.getElementById('user-posts-list');
+             container.innerHTML = '<p class="text-center text-gray-500">Cargando publicaciones...</p>';
+             
+             const { data: posts, error } = await supabase.from('posts')
+                 .select('*')
+                 .eq('user_id', userId)
+                 .order('created_at', { ascending: false });
+
+             if (error) {
+                 console.error(error);
+                 container.innerHTML = '<p class="text-center text-red-500">Error al cargar publicaciones.</p>';
+                 return;
+             }
+             
+             if (posts.length === 0) {
+                 container.innerHTML = `<p class="text-center text-gray-500">@${profilesCache[userId].name} no tiene publicaciones.</p>`;
+                 return;
+             }
+             
+             const { data: userLikes } = await supabase.from('likes').select('post_id').eq('user_id', USER_ID);
+             const liked = userLikes?.map(l => l.post_id) || [];
+             const profile = profilesCache[userId]; // Should be in cache from loadUserProfile
+
+             container.innerHTML = posts.map(post => {
+                 const isLiked = liked.includes(post.id);
+                 const deleteBtn = (post.user_id === USER_ID || IS_ADMIN) 
+                     ? `<span class="delete-btn" onclick="deletePost(${post.id}, 'posts')">BORRAR POST</span>`
+                     : '';
+                     
+                 const mediaHTML = post.media_url 
+                     ? `<img src="${post.media_url}" class="w-full mt-2 rounded-lg object-contain max-h-80" alt="Contenido de la Teoría">`
+                     : '';
+                     
+                 return `
+                     <div class="post" id="post-${post.id}">
+                         <div class="flex items-start justify-between">
+                             <div class="flex items-center">
+                                 ${renderAvatarHTML(profile, 'w-10 h-10 mr-2')}
+                                 <div>
+                                     <span class="text-sm font-bold text-purple-400">${profile.name}</span>
+                                     <p class="text-xs text-gray-500">${new Date(post.created_at).toLocaleString()}</p>
+                                 </div>
+                             </div>
+                             ${deleteBtn}
+                         </div>
+                         <p class="mt-2 text-white">${post.content}</p>
+                         ${mediaHTML}
+                         <div class="flex items-center mt-3 justify-between border-t border-gray-700 pt-2">
+                             <button class="pizza-btn ${isLiked ? 'active-like' : ''}" onclick="handleLike(${post.id}, ${isLiked})">
+                                 🍕 Slice <span id="likes-${post.id}">${post.likes_count || 0}</span>
+                             </button>
+                             <button class="pizza-btn bg-gray-600 hover:bg-gray-500" onclick="toggleComments(${post.id})">
+                                 Comentarios <span id="comments-count-${post.id}">${post.comments_count || 0}</span>
+                             </button>
+                         </div>
+                         <div id="comments-section-${post.id}" class="comments-section mt-3 hidden">
+                             <div id="comments-list-${post.id}"></div>
+                             <div class="flex mt-2">
+                                 <input type="text" id="comment-input-${post.id}" placeholder="Escribe un comentario..." class="comment-input flex-grow">
+                                 <button class="send-btn" onclick="sendComment(${post.id})">Enviar</button>
+                             </div>
+                         </div>
+                     </div>
+                 `;
+             }).join('');
+        }
+        
+        async function loadUserProfile(userId) {
+             targetUserId = userId;
+             switchTab('user-profile-view', false);
+             
+             const profile = await getProfileInfo(userId);
+             
+             document.getElementById('view-avatar-container').innerHTML = renderAvatarHTML(profile, 'w-16 h-16');
+             document.getElementById('view-name').textContent = `@${profile.name}`;
+             document.getElementById('view-name-posts').textContent = `@${profile.name}`;
+             document.getElementById('view-id').textContent = `ID: ${userId}`;
+             document.getElementById('view-followers').textContent = profile.followers;
+             document.getElementById('view-bio').textContent = profile.bio;
+             
+             if (userId === USER_ID) {
+                 document.getElementById('follow-btn').classList.add('hidden');
+                 document.getElementById('block-btn').classList.add('hidden');
+             } else {
+                 document.getElementById('follow-btn').classList.remove('hidden');
+                 document.getElementById('block-btn').classList.remove('hidden');
+                 
+                 // Check follow status
+                 const { data: follow } = await supabase.from('followers').select('*').match({ follower_id: USER_ID, following_id: userId }).single();
+                 document.getElementById('follow-btn').textContent = follow ? 'DEJAR DE SEGUIR' : 'SEGUIR';
+                 
+                 // Check block status
+                 const { data: block } = await supabase.from('blocks').select('*').match({ blocker_id: USER_ID, blocked_id: userId }).single();
+                 document.getElementById('block-btn').textContent = block ? 'DESBLOQUEAR' : 'BLOQUEAR';
+             }
+             
+             loadUserPosts(userId);
+        }
+
+        async function toggleFollow() {
+             const btn = document.getElementById('follow-btn');
+             btn.disabled = true;
+             
+             const isFollowing = btn.textContent === 'DEJAR DE SEGUIR';
+             
+             if (isFollowing) {
+                 const { error } = await supabase.from('followers').delete().match({ follower_id: USER_ID, following_id: targetUserId });
+                 if (!error) {
+                     btn.textContent = 'SEGUIR';
+                     const profile = profilesCache[targetUserId];
+                     profile.followers = Math.max(0, profile.followers - 1);
+                     document.getElementById('view-followers').textContent = profile.followers;
+                 } else {
+                     alert('Error al dejar de seguir: ' + error.message);
+                 }
+             } else {
+                 const { error } = await supabase.from('followers').insert({ follower_id: USER_ID, following_id: targetUserId });
+                 if (!error) {
+                     btn.textContent = 'DEJAR DE SEGUIR';
+                     const profile = profilesCache[targetUserId];
+                     profile.followers = profile.followers + 1;
+                     document.getElementById('view-followers').textContent = profile.followers;
+                 } else {
+                     alert('Error al seguir: ' + error.message);
+                 }
+             }
+             
+             btn.disabled = false;
+        }
+
+        async function toggleBlock() {
+             const btn = document.getElementById('block-btn');
+             btn.disabled = true;
+             
+             const isBlocking = btn.textContent === 'DESBLOQUEAR';
+             
+             if (isBlocking) {
+                 const { error } = await supabase.from('blocks').delete().match({ blocker_id: USER_ID, blocked_id: targetUserId });
+                 if (!error) {
+                     btn.textContent = 'BLOQUEAR';
+                 } else {
+                     alert('Error al desbloquear: ' + error.message);
+                 }
+             } else {
+                 const { error } = await supabase.from('blocks').insert({ blocker_id: USER_ID, blocked_id: targetUserId });
+                 if (!error) {
+                     alert(`¡Bloqueaste a ${profilesCache[targetUserId].name}! Su contenido ya no aparecerá.`);
+                     btn.textContent = 'DESBLOQUEAR';
+                 } else {
+                     alert('Error al bloquear: ' + error.message);
+                 }
+             }
+             
+             btn.disabled = false;
+        }
+
+        // ===================================
+        // === FUNCIONES DE MAPA, CÁMARAS Y CHAT ===
+        // ===================================
+        
+        async function loadMap(isInitialLoad = false) {
+             const container = document.getElementById('animatronic-status');
+             
+             if (isInitialLoad) {
+                 container.innerHTML = `<p class="text-center text-green-500">Esperando reporte táctico...</p>`;
+             }
+             
+             // Esto es una simulación de datos, no requiere DB, solo renderiza el estado ficticio.
+             container.innerHTML = ANIMATRONIC_STATUS.map(animatronic => {
+                 const color = animatronic.status === 'Movimiento' ? 'text-red-500' : (animatronic.status === 'Inactivo' ? 'text-green-500' : 'text-yellow-500');
+                 return `
+                     <div class="flex justify-between border-b border-gray-700 py-1">
+                         <span class="font-bold">${animatronic.name}:</span>
+                         <span class="${color}">${animatronic.status}</span>
+                         <span class="text-gray-400">${animatronic.location}</span>
+                     </div>
+                 `;
+             }).join('');
+        }
+        
+        async function loadCameras(isManualRefresh = false) {
+             if (isManualRefresh) profilesCache = {};
+             const { data: cameras } = await supabase.from('cameras').select('*').order('created_at', { ascending: false });
+             
+             const userIds = [...new Set(cameras.map(c => c.user_id))];
+             await Promise.all(userIds.map(id => getProfileInfo(id)));
+             
+             const container = document.getElementById('cameras-list');
+             container.innerHTML = '';
+             
+             if (cameras.length === 0) {
+                 container.innerHTML = `<p class="text-center text-gray-500">No hay grabaciones activas.</p>`;
+                 return;
+             }
+             
+             cameras.forEach(camera => {
+                 const profile = profilesCache[camera.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
+                 const deleteBtn = (camera.user_id === USER_ID || IS_ADMIN) 
+                     ? `<span class="delete-btn" onclick="deletePost(${camera.id}, 'cameras')">BORRAR GRABACIÓN</span>`
+                     : '';
+                     
+                 container.innerHTML += `
+                     <div class="post bg-gray-900 border-green-500" id="camera-${camera.id}">
+                         <div class="flex items-center justify-between">
+                             <div class="flex items-center">
+                                 ${renderAvatarHTML(profile, 'w-10 h-10 mr-2')}
+                                 <div>
+                                     <span class="text-sm font-bold text-green-400 username-link" onclick="loadUserProfile('${camera.user_id}')">${profile.name} (CÁMARA)</span>
+                                     <p class="text-xs text-gray-500">${new Date(camera.created_at).toLocaleString()}</p>
+                                 </div>
+                             </div>
+                             ${deleteBtn}
+                         </div>
+                         <video controls class="camera-video mt-2" src="${camera.media_url}" poster="https://placehold.co/800x400/000/fff?text=CARGANDO+VIDEO+DE+CÁMARA">
+                             Tu navegador no soporta el elemento de video.
+                         </video>
+                         <p class="mt-2 text-white">${camera.content || 'Sin descripción'}</p>
+                     </div>
+                 `;
+             });
+        }
+        
+        async function loadChat() {
+             const chatMessages = document.getElementById('chat-messages');
+             const { data: messages, error } = await supabase.from('chat_messages')
+                 .select('*')
+                 .order('created_at', { ascending: true });
+
+             if (error) {
+                 console.error('Error loading chat:', error);
+                 chatMessages.innerHTML = '<p class="text-center text-red-500">Error al cargar el chat.</p>';
+                 return;
+             }
+             
+             const userIds = [...new Set(messages.map(m => m.user_id))];
+             await Promise.all(userIds.map(id => getProfileInfo(id)));
+
+             const isAtBottom = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
+             chatMessages.innerHTML = messages.map(message => {
+                 const profile = profilesCache[message.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
+                 const isMe = message.user_id === USER_ID;
+                 const deleteBtn = (isMe || IS_ADMIN) 
+                     ? `<span class="delete-btn" onclick="deleteChat(${message.id})">x</span>`
+                     : '';
+                 
+                 const alignment = isMe ? 'justify-end' : 'justify-start';
+                 const color = isMe ? 'bg-purple-700' : 'bg-gray-700';
+                 
+                 return `
+                     <div class="flex ${alignment} mb-2">
+                         <div class="${color} p-3 rounded-lg max-w-xs relative">
+                             <div class="flex items-center mb-1">
+                                 ${renderAvatarHTML(profile, 'w-6 h-6 mr-2')}
+                                 <span class="font-bold text-sm text-yellow-300 username-link" onclick="loadUserProfile('${message.user_id}')">${profile.name}</span>
+                             </div>
+                             <p class="text-white text-base">${message.content}</p>
+                             <span class="text-xs text-gray-300 block text-right">${new Date(message.created_at).toLocaleTimeString().substring(0, 5)}</span>
+                             ${deleteBtn}
+                         </div>
+                     </div>
+                 `;
+             }).join('');
+
+             if (isAtBottom) {
+                 chatMessages.scrollTop = chatMessages.scrollHeight;
+             }
+        }
+        
+        async function sendChat() {
+             const input = document.getElementById('chat-input');
+             const content = input.value.trim();
+
+             if (!content) return;
+             
+             input.disabled = true;
+
+             const { error } = await supabase.from('chat_messages').insert({
+                 user_id: USER_ID,
+                 content: content
+             });
+
+             if (error) {
+                 console.error('Error al enviar mensaje:', error);
+                 alert('Error al enviar el mensaje.');
+             } else {
+                 input.value = '';
+                 loadChat();
+             }
+             
+             input.disabled = false;
+        }
+
+        // ===================================
+        // === FUNCIONES DE UTILIDAD ===
+        // ===================================
 
         async function submitPost() {
              const content = document.getElementById('post-content').value.trim();
              const fileInput = document.getElementById('post-file');
              const file = fileInput.files[0];
-             const submitBtn = document.getElementById('submit-post-btn');
-             const isCameraPost = document.getElementById('modal-title').textContent.includes('GRABACIÓN');
-             const bucket = isCameraPost ? 'camera_videos' : 'post_images';
-             const table = isCameraPost ? 'cameras' : 'posts';
-
+             
              if (!content && !file) {
-                 alert('Debes escribir contenido o subir un archivo.');
-                 return;
-             }
-
-             if (file && file.size > MAX_FILE_SIZE) {
-                 alert(`El archivo es muy grande. El límite es de ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
+                 alert('Debes escribir algo o subir una imagen/video.');
                  return;
              }
              
-             submitBtn.textContent = 'SUBIENDO...';
+             const submitBtn = document.getElementById('submit-post-btn');
+             submitBtn.textContent = 'PUBLICANDO...';
              submitBtn.disabled = true;
 
-             const profile = await getProfileInfo(USER_ID);
-             let fileUrl = null;
+             let mediaUrl = null;
+             let table = (currentTab === 'cameras') ? 'cameras' : 'posts';
 
              if (file) {
-                 fileUrl = await uploadFile(file, bucket);
-                 if (!fileUrl) {
-                     submitBtn.textContent = 'PUBLICAR';
-                     submitBtn.disabled = false;
-                     return;
+                 const bucket = (currentTab === 'cameras') ? 'videos' : 'images';
+                 mediaUrl = await uploadFile(file, bucket);
+                 if (!mediaUrl) {
+                      submitBtn.textContent = 'PUBLICAR';
+                      submitBtn.disabled = false;
+                      return;
                  }
              }
 
              const postData = {
                  user_id: USER_ID,
-                 name: profile.name,
-                 avatar: profile.avatar,
                  content: content,
-                 likes: 0
+                 media_url: mediaUrl
              };
-
-             if (isCameraPost) {
-                 postData.video = fileUrl;
-             } else {
-                 postData.image = fileUrl;
-             }
 
              const { error } = await supabase.from(table).insert(postData);
 
              if (error) {
-                 console.error('Error al publicar:', error);
-                 alert('Error al publicar en Supabase.');
+                 console.error(error);
+                 alert('Error al publicar: ' + error.message);
+             } else {
+                 closePostModal();
+                 if (currentTab === 'feed') loadFeed(true);
+                 if (currentTab === 'cameras') loadCameras(true);
              }
-
-             closePostModal();
+             
              submitBtn.textContent = 'PUBLICAR';
              submitBtn.disabled = false;
-             if (table === 'posts') {
-                 loadFeed(true);
-             } else {
-                 loadCameras(true);
+        }
+
+        function setupRealtime() {
+             // Realtime para Chat
+             supabase.channel('chat_messages_changes')
+                 .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => {
+                     if (currentTab === 'chat') {
+                         loadChat();
+                     } else if (currentTab === 'feed') {
+                         localStorage.setItem('hasNewComment', 'true');
+                         checkNotifications();
+                     }
+                 })
+                 .subscribe();
+                 
+             // Realtime para Feed y Likes/Comments (para notificaciones)
+             supabase.channel('posts_changes')
+                 .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
+                     if (currentTab !== 'feed') {
+                         if (payload.eventType === 'INSERT') {
+                             localStorage.setItem('hasNewPost', 'true');
+                             checkNotifications();
+                         }
+                         // Notificación para likes
+                         if (payload.eventType === 'UPDATE' && payload.new.likes_count > payload.old.likes_count) {
+                              localStorage.setItem('hasNewLike', 'true');
+                              checkNotifications();
+                         }
+                     } else {
+                          // If on feed tab, just refresh quietly
+                          loadFeed();
+                     }
+                 })
+                 .subscribe();
+        }
+
+        function checkNotifications() {
+             const hasNew = localStorage.getItem('hasNewPost') === 'true' || 
+                            localStorage.getItem('hasNewComment') === 'true' || 
+                            localStorage.getItem('hasNewLike') === 'true';
+
+             const dot = document.getElementById('feed-notification-dot');
+             if (dot) {
+                 dot.style.display = hasNew ? 'block' : 'none';
              }
         }
         
         async function deletePost(postId, table) {
              if (confirm(`¿Estás seguro de que quieres BORRAR este elemento de ${table}?`)) {
-                 const { error } = await supabase.from(table).delete().eq('id', postId).eq('user_id', USER_ID);
+                 // Usamos .eq('user_id', USER_ID) para que sólo el dueño pueda borrarlo (a menos que seas admin y RLS lo permita)
+                 const { error } = await supabase.from(table).delete().eq('id', postId);
+                 
                  if (error && error.code === '42501' && !IS_ADMIN) { 
                      alert('No tienes permiso para borrar publicaciones de otros guardias.');
                  } else if (error) {
@@ -1604,7 +1557,7 @@
         async function deleteChat(chatId) {
              if (confirm('¿Borrar este mensaje?')) {
                  // Permitir el borrado si eres el admin o el user_id coincide.
-                 const { error } = await supabase.from('chat_messages').delete().eq('id', chatId).or(`user_id.eq.${USER_ID},id.eq.${chatId}`); 
+                 const { error } = await supabase.from('chat_messages').delete().eq('id', chatId); 
 
                  if (error && error.code === '42501' && !IS_ADMIN) {
                       alert('No tienes permiso para borrar mensajes de otros.');
