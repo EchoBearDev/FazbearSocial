@@ -770,7 +770,7 @@
             const { data: userLikes } = await supabase.from('likes').select('post_id').eq('user_id', USER_ID);
             const liked = userLikes?.map(l => l.post_id) || [];
             
-            const userIds = [...new Set(posts.map(p => p.user_id))];
+            const userIds = [...new Set((posts || []).map(p => p.user_id))];
             await Promise.all(userIds.map(id => getProfileInfo(id)));
 
             const container = document.getElementById('feed');
@@ -785,7 +785,7 @@
                 </div>
             `;
             
-            const postsHTML = posts.length === 0 
+            const postsHTML = (!posts || posts.length === 0) 
                 ? (searchQuery ? `<p class="text-center text-red-400">No se encontraron resultados para "${searchQuery}"</p>` : '<p class="text-center text-purple-500">¡Sé el primero!</p>')
                 : posts.map(post => {
                     const isMyPost = post.user_id === USER_ID;
@@ -819,7 +819,7 @@
                 }).join('');
             
             container.innerHTML = contentHTML + postsHTML;
-            posts.forEach(post => loadComments(post.id));
+            (posts || []).forEach(post => loadComments(post.id));
         }
         
         // MOD-1: Función para verificar si un usuario ha bloqueado a otro
@@ -875,53 +875,77 @@
             buttonElement.disabled = false; 
         };
 
-        // CORRECCIÓN V13.3: Se mejora la estabilidad de la función de comentarios y se fuerza la apertura.
-        window.addComment = async (postId, input, postOwnerId) => {
-            if (!input.value.trim()) return;
-            
-            const isBlocked = await checkIfBlocked(postOwnerId, USER_ID);
-            if (isBlocked) {
-                 alert('ERROR: El dueño de esta publicación te ha bloqueado. No puedes comentar.');
-                 return;
-            }
-            
-            const { data: profile } = await supabase.from('profiles').select('name, avatar_url').eq('user_id', USER_ID).single();
-            
-            input.disabled = true; 
+        // REEMPLAZADA: addComment con manejo robusto y compatibilidad con avatar_url y tipos
+        window.addComment = async function(postId, input, postOwnerId) {
+            try {
+                if (!input || !input.value || !input.value.trim()) return;
 
-            // 1. Usamos await para asegurar la inserción antes de recargar
-            const { error } = await supabase.from('comments').insert({
-                post_id: postId,
-                user_id: USER_ID,
-                name: profile?.name || 'Anónimo',
-                avatar: profile?.avatar_url,
-                text: input.value.trim()
-            });
+                // Desactivar input mientras se procesa
+                input.disabled = true;
 
-            if (error) {
-                 console.error('Error al insertar comentario:', error);
-                 alert('Error al enviar el comentario. Intenta de nuevo.');
-                 input.disabled = false;
-                 return;
-            }
+                // Asegurar que postId tenga el tipo correcto (si la tabla espera integer)
+                const pid = (typeof postId === 'string' && /^\d+$/.test(postId)) ? parseInt(postId, 10) : postId;
 
-            input.value = '';
-            
-            if (USER_ID !== postOwnerId) {
-                 localStorage.setItem('hasNewComment', 'true');
-                 checkNotifications();
-            }
-            
-            // 2. Esperar la recarga de comentarios para que se muestren inmediatamente y actualizar el contador
-            await loadComments(postId);
+                // Obtener datos mínimos del perfil (si existe)
+                let profile = {};
+                try {
+                    const { data: p, error: pErr } = await supabase.from('profiles').select('name, avatar_url').eq('user_id', USER_ID).single();
+                    if (pErr) {
+                        // No detener el flujo por un error de lectura del perfil
+                        console.warn('Warning al obtener profile antes de comentar:', pErr);
+                    }
+                    profile = p || {};
+                } catch (err) {
+                    console.warn('Excepción al consultar profile:', err);
+                    profile = {};
+                }
 
-            // 3. FIX V13.3: Asegurar que la sección de comentarios esté abierta
-            const commentsDiv = document.getElementById(`comments-${postId}`);
-            if (commentsDiv.classList.contains('hidden')) {
-                 commentsDiv.classList.remove('hidden');
+                // Payload: usamos avatar_url (es el nombre más común en tu esquema) y pasamos post_id como número si aplica
+                const commentPayload = {
+                    post_id: pid,
+                    user_id: USER_ID,
+                    name: profile.name || 'Anónimo',
+                    avatar_url: profile.avatar_url || null,
+                    text: input.value.trim()
+                };
+
+                console.info('Enviando comentario (payload):', commentPayload);
+
+                // Insert y obtener el resultado (select() asegura que recibimos objetos en algunos setups)
+                const { data, error } = await supabase.from('comments').insert(commentPayload).select();
+
+                if (error) {
+                    console.error('Supabase insert error (comments):', error);
+                    // Mensaje útil al usuario — típicamente RLS/permiso o columna inexistente
+                    alert('Error al enviar el comentario: ' + (error.message || JSON.stringify(error)));
+                    input.disabled = false;
+                    return;
+                }
+
+                console.info('Comentario insertado:', data);
+
+                // Limpiar input y actualizar vista
+                input.value = '';
+
+                if (USER_ID !== postOwnerId) {
+                    localStorage.setItem('hasNewComment', 'true');
+                    checkNotifications();
+                }
+
+                // Recargar y mostrar comentarios
+                await loadComments(pid);
+
+                const commentsDiv = document.getElementById(`comments-${pid}`);
+                if (commentsDiv && commentsDiv.classList.contains('hidden')) {
+                    commentsDiv.classList.remove('hidden');
+                }
+
+            } catch (err) {
+                console.error('addComment unexpected error:', err);
+                alert('Error inesperado al enviar el comentario: ' + (err.message || JSON.stringify(err)));
+            } finally {
+                if (input) input.disabled = false;
             }
-            
-            input.disabled = false; // Habilitar de nuevo
         };
 
 
@@ -964,7 +988,7 @@
             const listContainer = document.getElementById('user-posts-list');
             listContainer.innerHTML = '';
 
-            if (posts.length === 0) {
+            if (!posts || posts.length === 0) {
                  listContainer.innerHTML = '<p class="text-center text-gray-500">Este usuario aún no ha hecho ninguna publicación.</p>';
             } else {
                  posts.forEach(post => {
@@ -1075,6 +1099,7 @@
             document.getElementById('profile-total-posts').textContent = totalPosts || 0;
         }
 
+        // FIX: saveProfile no debe llamarse recursivamente
         window.saveProfile = async () => {
             const name = document.getElementById('profile-name').value.trim();
             const bio = document.getElementById('profile-bio').value.trim();
@@ -1140,8 +1165,8 @@
 
             avatarFileInput.value = ''; 
             
-            loadProfile();
-            saveProfile(); // Recarga para asegurar que todos los caches internos se actualicen
+            // Recargar perfil (esperar para asegurar que se refresque)
+            await loadProfile();
             saveBtn.textContent = 'GUARDAR PERFIL';
             saveBtn.disabled = false;
             alert('Perfil guardado exitosamente!');
@@ -1319,13 +1344,13 @@
              
              const { data: cameras } = await supabase.from('cameras').select('*').order('created_at', { ascending: false });
              
-             const userIds = [...new Set(cameras.map(c => c.user_id))];
+             const userIds = [...new Set((cameras || []).map(c => c.user_id))];
              await Promise.all(userIds.map(id => getProfileInfo(id)));
 
              container.innerHTML = '';
-             container.innerHTML += cameras.length === 0 ? '<p class="text-center text-gray-500">No hay grabaciones activas.</p>' : '';
+             container.innerHTML += (!cameras || cameras.length === 0) ? '<p class="text-center text-gray-500">No hay grabaciones activas.</p>' : '';
              
-             cameras.forEach(cam => {
+             (cameras || []).forEach(cam => {
                  const isMyPost = cam.user_id === USER_ID;
                  const profile = profilesCache[cam.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
 
@@ -1389,10 +1414,10 @@
             const container = document.getElementById('chat-messages');
             container.innerHTML = '';
             
-            const userIds = [...new Set(messages.map(m => m.user_id))];
+            const userIds = [...new Set((messages || []).map(m => m.user_id))];
             await Promise.all(userIds.map(id => getProfileInfo(id)));
             
-            messages.forEach(m => appendChatMessage(m));
+            (messages || []).forEach(m => appendChatMessage(m));
         }
         
         // CORRECCIÓN V13.3: Muestra el contador de comentarios y el avatar
@@ -1406,11 +1431,11 @@
             }
 
             if (list) {
-                 const userIds = [...new Set(comments.map(c => c.user_id))];
+                 const userIds = [...new Set(((comments || []).map(c => c.user_id)))];
                  await Promise.all(userIds.map(id => getProfileInfo(id)));
                  
                  // Limpia y vuelve a cargar
-                 list.innerHTML = comments.map(c => {
+                 list.innerHTML = (comments || []).map(c => {
                     const profile = profilesCache[c.user_id] || { name: 'Anónimo', avatar: DEFAULT_AVATAR };
                     
                     return `
