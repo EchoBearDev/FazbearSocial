@@ -306,7 +306,7 @@
     <script>
         // === TUS LLAVES ===
         const SUPABASE_URL = 'https://fnoowiwoqexnlrmhilau.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZub293aXdvcWV4bmxybWhpbGF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjY2OTYsImV4cCI6MjA3Njc0MjY5Nn0.yrPI1mqQ-xRYmEKEFFUhAoOOHKo4VsW0m15B5RbXE4';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZub293aXdvcWV4bmxybWhpbGF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjY2OTYsImV4cCI6MjA3Njc0MjY5Nn0.yrPI1mqQ-xRYmEKEFFUhAoOOHKo4VZsW0m15B5RbXE4';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // === VARIABLES GLOBALES Y CONSTANTES V13.3 ===
@@ -586,7 +586,7 @@
         async function loadMaintenanceMode() {
             const { data: config } = await supabase.from('config').select('maintenance_mode').single();
             maintenanceMode = config ? config.maintenance_mode : false;
-            if (document.getElementById('maintenance-mode')) document.getElementById('maintenance-mode').checked = maintenanceMode;
+            document.getElementById('maintenance-mode').checked = maintenanceMode;
         }
 
         async function toggleMaintenanceMode() {
@@ -770,7 +770,7 @@
             const { data: userLikes } = await supabase.from('likes').select('post_id').eq('user_id', USER_ID);
             const liked = userLikes?.map(l => l.post_id) || [];
             
-            const userIds = [...new Set(((posts || []).map(p => p.user_id)))];
+            const userIds = [...new Set((posts || []).map(p => p.user_id))];
             await Promise.all(userIds.map(id => getProfileInfo(id)));
 
             const container = document.getElementById('feed');
@@ -880,6 +880,7 @@
             try {
                 if (!input || !input.value || !input.value.trim()) return;
 
+                // Desactivar input mientras se procesa
                 input.disabled = true;
 
                 // Asegurar que postId tenga el tipo correcto (si la tabla espera integer)
@@ -899,54 +900,29 @@
                     profile = {};
                 }
 
-                const text = input.value.trim();
-
-                // Intento 1: insertar con avatar_url (si la tabla lo soporta)
-                const payloadWithAvatarUrl = {
+                // Payload: usamos avatar_url (es el nombre más común en tu esquema) y pasamos post_id como número si aplica
+                const commentPayload = {
                     post_id: pid,
                     user_id: USER_ID,
                     name: profile.name || 'Anónimo',
                     avatar_url: profile.avatar_url || null,
-                    text: text
+                    text: input.value.trim()
                 };
 
-                console.info('Intentando insertar comentario con avatar_url:', payloadWithAvatarUrl);
+                console.info('Enviando comentario (payload):', commentPayload);
 
-                const { data, error } = await supabase.from('comments').insert(payloadWithAvatarUrl).select();
+                // Insert y obtener el resultado (select() asegura que recibimos objetos en algunos setups)
+                const { data, error } = await supabase.from('comments').insert(commentPayload).select();
 
                 if (error) {
-                    console.warn('Insert con avatar_url falló:', error);
-
-                    const errMsg = (error && error.message) ? error.message.toLowerCase() : '';
-
-                    // Si el error indica que la columna avatar_url no existe, intentamos sin ese campo
-                    if (errMsg.includes('could not find the') && errMsg.includes('avatar_url')) {
-                        const payloadWithoutAvatar = {
-                            post_id: pid,
-                            user_id: USER_ID,
-                            name: profile.name || 'Anónimo',
-                            text: text
-                        };
-                        console.info('Reintentando insertar comentario SIN avatar_url:', payloadWithoutAvatar);
-                        const { data: retryData, error: retryError } = await supabase.from('comments').insert(payloadWithoutAvatar).select();
-
-                        if (retryError) {
-                            console.error('Reintento sin avatar_url falló:', retryError);
-                            alert('Error al enviar el comentario: ' + (retryError.message || JSON.stringify(retryError)));
-                            input.disabled = false;
-                            return;
-                        } else {
-                            console.info('Comentario insertado (sin avatar_url):', retryData);
-                        }
-                    } else {
-                        console.error('Error insertando comentario:', error);
-                        alert('Error al enviar el comentario: ' + (error.message || JSON.stringify(error)));
-                        input.disabled = false;
-                        return;
-                    }
-                } else {
-                    console.info('Comentario insertado (con avatar_url):', data);
+                    console.error('Supabase insert error (comments):', error);
+                    // Mensaje útil al usuario — típicamente RLS/permiso o columna inexistente
+                    alert('Error al enviar el comentario: ' + (error.message || JSON.stringify(error)));
+                    input.disabled = false;
+                    return;
                 }
+
+                console.info('Comentario insertado:', data);
 
                 // Limpiar input y actualizar vista
                 input.value = '';
@@ -956,6 +932,7 @@
                     checkNotifications();
                 }
 
+                // Recargar y mostrar comentarios
                 await loadComments(pid);
 
                 const commentsDiv = document.getElementById(`comments-${pid}`);
@@ -1199,7 +1176,6 @@
         // === TIENDA DE TOKENS (ECON-2) ===
         function loadShop() {
              const shopContainer = document.getElementById('shop-items');
-             if (!shopContainer) return;
              shopContainer.innerHTML = '';
              const currentTokens = parseInt(document.getElementById('shop-tokens-display').textContent);
              const currentProfile = profilesCache[USER_ID] || {};
@@ -1364,12 +1340,11 @@
         async function loadCameras(isManualRefresh = false) {
              if (isManualRefresh) profilesCache = {};
              const container = document.getElementById('cameras-list');
-             if (!container) return;
              container.innerHTML = '<p class="text-center text-gray-500">Cargando grabaciones...</p>';
              
              const { data: cameras } = await supabase.from('cameras').select('*').order('created_at', { ascending: false });
              
-             const userIds = [...new Set(((cameras || []).map(c => c.user_id)))];
+             const userIds = [...new Set((cameras || []).map(c => c.user_id))];
              await Promise.all(userIds.map(id => getProfileInfo(id)));
 
              container.innerHTML = '';
@@ -1437,10 +1412,9 @@
         async function loadChat() {
             const { data: messages } = await supabase.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(50);
             const container = document.getElementById('chat-messages');
-            if (!container) return;
             container.innerHTML = '';
             
-            const userIds = [...new Set(((messages || []).map(m => m.user_id)))];
+            const userIds = [...new Set((messages || []).map(m => m.user_id))];
             await Promise.all(userIds.map(id => getProfileInfo(id)));
             
             (messages || []).forEach(m => appendChatMessage(m));
